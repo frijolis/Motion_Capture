@@ -1,4 +1,4 @@
 # Motion_Capture
-Inertial Motion Capture System
+Inertial Motion Capture System.
 Active GitHub Users:
-Marcin
+Marcin,
