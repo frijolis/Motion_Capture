@@ -4,3 +4,4 @@ Active GitHub Users:
 Marcin,
 Edison,
 Wyatt,
+Daniel,
