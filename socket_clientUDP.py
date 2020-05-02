@@ -13,6 +13,7 @@ sock.bind((UDP_IP, UDP_PORT))
 mes= bytes("ok",'utf-8')
 
 file = open("readings.txt", "w")
+file.write("time A1_xyz G1_xyz A2_xyz G2_xyz\n");
 while True:
    data = sock.recvfrom(1024) # buffer size is 1024 bytes
    if data:
@@ -20,6 +21,6 @@ while True:
       #size = sys.getsizeof(data)
       #print(size)
       print(rec)
-      file.write(rec);
+      file.write(str(rec)+"\n");
       #sock.sendto(mes,data[1])
 sock.close()
