@@ -20,7 +20,7 @@ while True:
       rec = struct.unpack('13f',data[0])
       #size = sys.getsizeof(data)
       #print(size)
-      print(rec)
+      #print(rec)
       file.write(str(rec)+"\n");
       #sock.sendto(mes,data[1])
 sock.close()
