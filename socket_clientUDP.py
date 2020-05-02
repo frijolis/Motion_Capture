@@ -3,6 +3,7 @@
 #author: XnibereiK
 import struct
 import socket
+import time
 import sys
 UDP_IP = "0.0.0.0"
 UDP_PORT = 8090
@@ -12,11 +13,10 @@ sock.bind((UDP_IP, UDP_PORT))
 mes= bytes("ok",'utf-8')
 while True:
    data = sock.recvfrom(1024) # buffer size is 1024 bytes
-   #print("received message:")
    if data:
       rec = struct.unpack('13f',data[0])
       #size = sys.getsizeof(data)
       #print(size)
       print(rec)
-      sock.sendto(mes,data[1])
+      #sock.sendto(mes,data[1])
 sock.close()
