@@ -109,15 +109,15 @@ void loop(){
 //////////////////////FUNCTIONS/////////////////////////////////
 void buildPacket(){
   pkt.Time = (float)timestamp;
-  pkt.ax1 = imu1.ax*SENSITIVITY_ACCELEROMETER_2;
-  pkt.ay1 = imu1.ay*SENSITIVITY_ACCELEROMETER_2;
-  pkt.az1 = imu1.az*SENSITIVITY_ACCELEROMETER_2;
+  pkt.ax1 = imu1.ax*SENSITIVITY_ACCELEROMETER_2*9.81;
+  pkt.ay1 = imu1.ay*SENSITIVITY_ACCELEROMETER_2*9.81;
+  pkt.az1 = imu1.az*SENSITIVITY_ACCELEROMETER_2*9.81;
   pkt.gx1 = imu1.gx*SENSITIVITY_GYROSCOPE_245;
   pkt.gy1 = imu1.gy*SENSITIVITY_GYROSCOPE_245;
   pkt.gz1 = imu1.gz*SENSITIVITY_GYROSCOPE_245;
-  pkt.ax2 = imu2.ax*SENSITIVITY_ACCELEROMETER_2;
-  pkt.ay2 = imu2.ay*SENSITIVITY_ACCELEROMETER_2;
-  pkt.az2 = imu2.az*SENSITIVITY_ACCELEROMETER_2;
+  pkt.ax2 = imu2.ax*SENSITIVITY_ACCELEROMETER_2*9.81;
+  pkt.ay2 = imu2.ay*SENSITIVITY_ACCELEROMETER_2*9.81;
+  pkt.az2 = imu2.az*SENSITIVITY_ACCELEROMETER_2*9.81;
   pkt.gx2 = imu2.gx*SENSITIVITY_GYROSCOPE_245;
   pkt.gy2 = imu2.gy*SENSITIVITY_GYROSCOPE_245;
   pkt.gz2 = imu2.gz*SENSITIVITY_GYROSCOPE_245;
