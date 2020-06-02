@@ -9,6 +9,8 @@
 #define SCL_1 26
 #define SDA_2 33
 #define SCL_2 32
+
+//sensitivities can be changed in the functions section
 #define SENSITIVITY_ACCELEROMETER_2  0.000061
 #define SENSITIVITY_ACCELEROMETER_4  0.000122
 #define SENSITIVITY_ACCELEROMETER_8  0.000244
@@ -18,7 +20,7 @@
 #define SENSITIVITY_GYROSCOPE_2000   0.07
 #define PRINT_CALCULATED
 //#define PRINT_RAW
-#define PRINT_SPEED 10
+#define PRINT_SPEED 10 //print speed in ms
 
 // Keep track of print time
 static unsigned long lastPrint = 0;
@@ -58,10 +60,6 @@ void setup(){
   if (imu1.begin() == false || imu2.begin(0x6B, 0x1E, Wire1) == false){ // with no arguments, this uses default addresses (AG:0x6B, M:0x1E) and i2c port (Wire).
      Serial.println("Failed to communicate with LSM9DS1.");
      Serial.println("Double-check wiring.");
-     Serial.println("Default settings in this sketch will " \
-                   "work for an out of the box LSM9DS1 " \
-                   "Breakout, but may need to be modified " \
-                   "if the board jumpers are.");
      while (1);
   }
        
