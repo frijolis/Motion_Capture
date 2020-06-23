@@ -1,6 +1,7 @@
 import numpy as np
 import quaternion
 import math as m
+import pandas as pd
 
 g = 1 #Gravity
 
@@ -100,6 +101,7 @@ w = 1 #sample time
 #sample[k,0] = -0.969846310
 #sample[j,0] = 0.173648177
 #sample[i,0] = 0.171010071
+######################## Setting up initial conditions ###############################
 
 currentQ = np.quaternion(0,0,0,0);
 quats = [currentQ];
@@ -155,18 +157,32 @@ def getState(sample, i):
 
 # def saveState():
     
-    
+#### Pandas Matrix for optimization and calibration ####
+
+def Panda_Matrix(sample,A):
+    B = pd.DataFrame([[0,sample[0][0],sample[1][0],sample[2][0],sample[0][1],sample[1][1],sample[2][1]]], columns=['Time', 'AX1', 'AY1', 'AZ1', 'GX1', 'GY1', 'GZ1'])
+    A = pd.concat([A, B], ignore_index=True)
+    print(A)
+    return A
+
 # Called from socket
+#A1X = sample[0][0]
+#A1Y = sample[1][0]
+#A1Z = sample[2][0]
+#G1X = sample[0][1]
+#G1Y = sample[1][1]
+#G1Z = sample[2][1]
 first = 1;
 i = 1;
 def newState(sample):
-    global first;
-    global i;
-    global currentQ;
+    global first
+    global i
+    global currentQ
     
     #print("NewState")
-    sample=np.array(sample);
-    
+    #sample=np.array(sample)
+    print(sample)
+    '''
     if(first):
         print("first")
         currentQ = makequaternion0(sample)
@@ -182,7 +198,7 @@ def newState(sample):
     first = 0;
     #print("endnewState")
     #print(states)
-    
+    '''
 #newState(sample)
 #print("\n\n\n")
 #print(quats)
