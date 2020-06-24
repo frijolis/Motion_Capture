@@ -158,13 +158,6 @@ def getState(sample, i):
 # def saveState():
     
 #### Pandas Matrix for optimization and calibration ####
-
-def Panda_Matrix(sample,A):
-    B = pd.DataFrame([[0,sample[0][0],sample[1][0],sample[2][0],sample[0][1],sample[1][1],sample[2][1]]], columns=['Time', 'AX1', 'AY1', 'AZ1', 'GX1', 'GY1', 'GZ1'])
-    A = pd.concat([A, B], ignore_index=True)
-    print(A)
-    return A
-
 # Called from socket
 #A1X = sample[0][0]
 #A1Y = sample[1][0]
@@ -172,6 +165,14 @@ def Panda_Matrix(sample,A):
 #G1X = sample[0][1]
 #G1Y = sample[1][1]
 #G1Z = sample[2][1]
+
+def Panda_Matrix(time,sample,A):
+    if (A.empty == False) : time = (time-A.iloc[0,0])/1000  
+    B = pd.DataFrame([[time,sample[0][0],sample[1][0],sample[2][0],sample[0][1],sample[1][1],sample[2][1]]], columns=['Time', 'AX1', 'AY1', 'AZ1', 'GX1', 'GY1', 'GZ1'])
+    A = pd.concat([A, B], ignore_index=True)
+    print(A)
+    return A
+
 first = 1;
 i = 1;
 def newState(sample):
