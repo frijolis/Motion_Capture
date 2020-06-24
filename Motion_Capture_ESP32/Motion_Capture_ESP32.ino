@@ -39,11 +39,9 @@ void buildPacket();
 /* WiFi network name and password */
 const char* ssid = "MySpectrumWiFieb-2G";
 const char* password =  "outletwalnut604";
-// IP address to send UDP data to.
-// it can be ip address of the server or
-// a network broadcast address
-// here is broadcast address
-const char * udpAddress = "192.168.1.232";
+//List of IP addresses of computers receiving the data
+const int no_IPs = 2;
+const char * udpAddress[no_IPs] = {"192.168.1.232","192.168.1.67"};
 const int udpPort = 8090;
 struct pkt {float Time, ax1, ay1, az1, gx1, gy1, gz1, ax2, ay2, az2, gx2, gy2, gz2;} pkt;
 //create UDP instance
@@ -94,13 +92,23 @@ void loop(){
     getData();
     buildPacket();
     lastPrint = timestamp;
-    
-    //Serial.println("Sending packet...");
-    udp.beginPacket(udpAddress, udpPort);
-    udp.write((byte *) &pkt, sizeof pkt);
-    udp.endPacket();
-    //Serial.println("Packet sent...");
+    for (int i = 0; i < no_IPs; i++)
+    {
+      if (udp.beginPacket(udpAddress[i], udpPort) == 1)
+        {
+        udp.write((byte *) &pkt, sizeof pkt);
+        udp.endPacket();
+        }
+      else Serial.print("UDP Address1 down");
+    }
+    /*if (udp.beginPacket(udpAddress[0], udpPort) == 0)
+    {
+      udp.beginPacket(udpAddress[1], udpPort);
+    }
+     udp.write((byte *) &pkt, sizeof pkt);
+     udp.endPacket();
     //processing incoming packet, must be called before reading the buffer
+  */
   }
 }
 
