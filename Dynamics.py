@@ -3,8 +3,6 @@ import quaternion
 import math as m
 import pandas as pd
 
-g = 1 #Gravity
-
 #Quaternion Maths
 
 def conjugate(q):
@@ -35,11 +33,10 @@ def alpha0(samples):
     return 0
 
 def beta0(samples):
-    #return m.atan2(samples[0,0,0],samples[0,2,0])
-    return m.pi - m.atan2(samples[0,0],m.sqrt(1-pow(samples[0,0],2))*m.copysign(1,samples[2,0]))
+    cum = samples[:,0].dot(samples[:,0])
+    return m.pi - m.atan2(samples[0,0],m.sqrt(cum-pow(samples[0,0],2))*m.copysign(1,samples[2,0]))
 
 def gamma0(samples):
-    #return -(m.atan2(samples[0,1,0],m.sqrt(1-pow(samples[0,1,0],2))*m.copysign(1,samples[0,2,0])))
     return m.pi + m.atan2(samples[1,0],samples[2,0])
     
 def alpha(samples,w):
@@ -56,12 +53,7 @@ def makequaternion0(samples):
                          m.cos(0.5*alpha0(samples))*m.cos(0.5*beta0(samples))*m.sin(0.5*gamma0(samples)) - m.sin(0.5*alpha0(samples))*m.sin(0.5*beta0(samples))*m.cos(0.5*gamma0(samples)),
                          m.cos(0.5*alpha0(samples))*m.sin(0.5*beta0(samples))*m.cos(0.5*gamma0(samples)) + m.sin(0.5*alpha0(samples))*m.cos(0.5*beta0(samples))*m.sin(0.5*gamma0(samples)),
                          m.sin(0.5*alpha0(samples))*m.cos(0.5*beta0(samples))*m.cos(0.5*gamma0(samples)) - m.cos(0.5*alpha0(samples))*m.sin(0.5*beta0(samples))*m.sin(0.5*gamma0(samples)))
-#     print(q)
-    return q;
-    #return np.quaternion(m.cos(0.5*beta0(samples))*m.cos(0.5*gamma0(samples)) + m.sin(0.5*beta0(samples))*m.sin(0.5*gamma0(samples)), 
-    #m.cos(0.5*beta0(samples))*m.sin(0.5*gamma0(samples)) - m.sin(0.5*beta0(samples))*m.cos(0.5*gamma0(samples)), 
-    #m.sin(0.5*beta0(samples))*m.cos(0.5*gamma0(samples)) + m.cos(0.5*beta0(samples))*m.sin(0.5*gamma0(samples)),
-    #m.cos(0.5*beta0(samples))*m.cos(0.5*gamma0(samples)) - m.sin(0.5*beta0(samples))*m.sin(0.5*gamma0(samples)))
+    return q
     
 def makequaternion(samples,w):
     return np.quaternion(m.cos(0.5*alpha(samples,w))*m.cos(0.5*beta(samples,w))*m.cos(0.5*gamma(samples,w)) + m.sin(0.5*alpha(samples,w))*m.sin(0.5*beta(samples,w))*m.sin(0.5*gamma(samples,w)), 
@@ -74,12 +66,9 @@ def orientation(q0,samples,w):
     return q0 * makequaternion(samples,w)
 
 def subtractg(a):
-    g = quaternion.as_float_array(a)
-#     print(g)
-    g[3] = g[3] + 1 # add one g to z
-#     print(g)
-    return quaternion.as_quat_array(g)
-
+    v = quaternion.as_float_array(a)
+    v[3] = v[3] + g # add one g to z
+    return quaternion.as_quat_array(v)
 
 #Kinematics
 
@@ -88,6 +77,9 @@ def position(s0,v0,a,t):
     return s0 + v0 * t + 0.5 * a * pow(t,2)
 def speed(v0,a,t):
     return v0 + a * t
+
+g = 9.81 #Gravity
+w = 0.00001 #Sample Frequency
 
 # Trial data
 #T = 3 #Discrete Time
@@ -106,15 +98,26 @@ w = 1 #sample time
 currentQ = np.quaternion(0,0,0,0);
 quats = [currentQ];
 states = [[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]] # 4x3xT
-# states
-# add = [[1,1,0],[0,0,0],[0,0,0],[0,0,0]]
-# states.insert(1, add)
-# add = [[2,1,0],[0,0,0],[0,0,0],[0,0,0]]
-# states.insert(1, add)
-# states
+
+
+def printStates():
+    global states
+    
+    # convert 3d array to 2d pandas
+    mat = []
+    for i in range(0,len(states)):
+        s = []
+        for j in range(0, len(states[i])):
+            s.extend(states[i][j])
+        mat.append(s)
+    df = pd.DataFrame(data = mat, columns=['px','py','pz', 'vx','vy','vz', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'abx', 'aby', 'abz'])
+    
+    
+    print("\n\nStates array")
+    pd.set_option('display.max_columns', None)
+    print(df)
 
 def updateQuaternion(sample):
-    #print("UpdateQ")
     global currentQ;
     global w; # sample freq
     
@@ -122,18 +125,17 @@ def updateQuaternion(sample):
     quats.append(currentQ);
     
 def getState(sample, i):
-    #print("getState")
     global currentQ
-    state = np.zeros((4,3), dtype=float).T
+    state = np.zeros((5,3), dtype=float).T
     
     a_body = np.quaternion(0,sample[0,0],sample[1,0],sample[2,0])
-#     print(a_body)
     a_nav = rotatef(currentQ, a_body) # accel in nav frame
-#     print(a_nav)
     a_nav_subg = subtractg(a_nav)
-#     print(a_nav_subg)
-
-    # Acceleration
+    
+    # Acceleration - body
+    a_body = quaternion.as_float_array(a_body)
+    state[:,4] = a_body[1:]
+    # Acceleration - nav
     a_nav_subg = quaternion.as_float_array(a_nav_subg)
     state[0,2] = a_nav_subg[1]
     state[1,2] = a_nav_subg[2]
@@ -143,28 +145,17 @@ def getState(sample, i):
     state[1,3] = sample[1,1]
     state[2,3] = sample[2,1]
     # Velocity
-    state[0,1] = speed(states[i-1][1][0], state[0,2], w) #speed(v0 a t)
-    state[1,1] = speed(states[i-1][1][1], state[1,2], w)
-    state[2,1] = speed(states[i-1][1][2], state[2,2], w)
+    state[0,1] = speed(states[i-1][1][0], states[i-1][2][0], w) #speed(v0 a t)
+    state[1,1] = speed(states[i-1][1][1], states[i-1][2][1], w)
+    state[2,1] = speed(states[i-1][1][2], states[i-1][2][2], w)
     # Position
-    state[0,0] = position(states[i-1][0][0], states[i-1][1][0], state[0,2], w) #position(s0,v0,a,t)
-    state[1,0] = position(states[i-1][0][1], states[i-1][1][1], state[1,2], w)
-    state[2,0] = position(states[i-1][0][2], states[i-1][1][2], state[2,2], w)
+    state[0,0] = position(states[i-1][0][0], states[i-1][1][0], states[i-1][2][0], w) #position(s0,v0,a,t)
+    state[1,0] = position(states[i-1][0][1], states[i-1][1][1], states[i-1][2][1], w)
+    state[2,0] = position(states[i-1][0][2], states[i-1][1][2], states[i-1][2][2], w)
 
-    #print("endgetState")
-    print(state[:,0])
     return state.T
-
-# def saveState():
     
 #### Pandas Matrix for optimization and calibration ####
-# Called from socket
-#A1X = sample[0][0]
-#A1Y = sample[1][0]
-#A1Z = sample[2][0]
-#G1X = sample[0][1]
-#G1Y = sample[1][1]
-#G1Z = sample[2][1]
 
 def Panda_Matrix(time,sample,A):
     if (A.empty == False) : time = (time-A.iloc[0,0])/1000  
@@ -173,33 +164,60 @@ def Panda_Matrix(time,sample,A):
     print(A)
     return A
 
-first = 1;
-i = 1;
-def newState(sample):
-    global first
-    global i
-    global currentQ
-    
-    #print("NewState")
-    #sample=np.array(sample)
-    print(sample)
-    '''
-    if(first):
-        print("first")
-        currentQ = makequaternion0(sample)
-    else:
-        #getQ
-        updateQuaternion(sample);
-    
-    # init state array
-    state = getState(sample, i);
+i = 1
+j = 0
+calSamples = 300
+calSample = []
+offset = np.empty((2,3), dtype=float).T
+#weight = 0
 
-    #saveState
+# Processes sensor data from socket and stores state information in master array
+# input: 3x2
+# output: appends 4x3 state to states
+# A1X = sample[0][0]
+# A1Y = sample[1][0]
+# A1Z = sample[2][0]
+# G1X = sample[0][1]
+# G1Y = sample[1][1]
+# G1Z = sample[2][1]
+
+
+def newState(sample):
+    global i
+    global j
+    global currentQ
+    global calSamples
+    global calSample
+    global offset
+        
+    if j < calSamples:
+        lst = [row[0] for row in sample]
+        lst.extend([row[1] for row in sample])
+        calSample.append(lst)
+        # aX gX aY gY aZ gZ
+        # 300
+        j += 1
+        if(j == calSamples):
+            df = pd.DataFrame(data = calSample)
+            df = df.mean(axis = 0)
+            sample = df.to_numpy()
+            # [aX gX aY gY aZ gZ] --> [aX gX aY][gY aZ gZ]
+            sample = np.array([sample[0:3], sample[3:]]).T
+            offset = sample
+            offset[0,0] = offset[0,0]-g
+        
+            currentQ = makequaternion0(sample)
+        
+        else:
+            return
+
+
+    sample = np.subtract(sample, offset)
+
+
+    # init state array
+    state = getState(sample, i)
+    i += 1
     states.append(state.tolist())
-    first = 0;
-    #print("endnewState")
-    #print(states)
-    '''
-#newState(sample)
-#print("\n\n\n")
-#print(quats)
+    
+    updateQuaternion(sample)
