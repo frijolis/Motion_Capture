@@ -40,8 +40,8 @@ void buildPacket();
 const char* ssid = "MySpectrumWiFieb-2G";
 const char* password =  "outletwalnut604";
 //List of IP addresses of computers receiving the data
-const int no_IPs = 2;
-const char * udpAddress[no_IPs] = {"192.168.1.232","192.168.1.67"};
+const int no_IPs = 3;
+const char * udpAddress[no_IPs] = {"192.168.1.232","192.168.1.67","192.168.1.119"};
 const int udpPort = 8090;
 struct pkt {float Time, ax1, ay1, az1, gx1, gy1, gz1, ax2, ay2, az2, gx2, gy2, gz2;} pkt;
 //create UDP instance
