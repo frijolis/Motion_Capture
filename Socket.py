@@ -23,7 +23,7 @@ description=textwrap.dedent('''This program is the socket for Motion Capture sys
 Samples sent to the Dynamics.py program are of the following format:
 	
 	#sample from n-th sensor
-	sample[n] =
+	sample[n],n =
 	[[An_X, Gn_X],
 	 [An_Y, Gn_X],
 	 [An_Z, Gn_X]]
@@ -85,20 +85,17 @@ if results.text_file_enable:
 	file.write("time A1_xyz G1_xyz A2_xyz G2_xyz\n")
 	if results.verbose_output_enable:
 		print("File opened")
-sensor_no = 1
+sensor_no = 2
 timestep = 0
-i = 0
 sample = np.zeros([sensor_no,3,2],dtype = float)
 if results.verbose_output_enable:
 	print("Listening on port: %d" %UDP_PORT)
 	time.sleep(1)
+	print("Starting...")
+	time.sleep(3)
 ############ misc setup end #############
 
 ################# MAIN ##################
-if results.verbose_output_enable:
-	print("Starting...")
-	time.sleep(3)
-
 while True: #!!!should be listening for user input!!!
 	
 	data = sock.recvfrom(1024) #buffer size is 1024 bytes

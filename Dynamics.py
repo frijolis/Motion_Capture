@@ -185,78 +185,78 @@ def newState(sample,n):
     global weight
     
     if j < calSamples:
-        calSample[n,j,0] = sample[0][0]
-        calSample[n,j,1] = sample[1][0]
-        calSample[n,j,2] = sample[2][0]
-        calSample[n,j,3] = sample[0][1]
-        calSample[n,j,4] = sample[1][1]
-        calSample[n,j,5] = sample[2][1]
+        for n in range(sensor_no):
+            calSample[n,j,0] = sample[0][0]
+            calSample[n,j,1] = sample[1][0]
+            calSample[n,j,2] = sample[2][0]
+            calSample[n,j,3] = sample[0][1]
+            calSample[n,j,4] = sample[1][1]
+            calSample[n,j,5] = sample[2][1]
         #lst = [row[0] for row in sample]
         #lst.extend([row[1] for row in sample])
         #calSample.append(lst)
         # aX gX aY gY aZ gZ
         # 30
-        if n == sensor_no - 1:
-            j += 1
-        if(j == calSamples):
-            #print(calSample)
-            for n in range(sensor_no):
-                #print(n+1)
-                sample[n][0][0] = sum(calSample[n,:,0])/calSamples
-                sample[n][1][0] = sum(calSample[n,:,1])/calSamples
-                sample[n][2][0] = sum(calSample[n,:,2])/calSamples
-                sample[n][0][1] = sum(calSample[n,:,3])/calSamples
-                sample[n][1][1] = sum(calSample[n,:,4])/calSamples
-                sample[n][2][1] = sum(calSample[n,:,5])/calSamples
-                #print(sample)
-
-                magA = m.sqrt(pow(sample[0][0],2)+pow(sample[1][0],2)+pow(sample[2][0],2))
-                weight = g/magA
-            #df = pd.DataFrame(data = calSample)
-            #df = df.mean(axis = 0)
-            #sample = df.to_numpy()
+    if j == calSamples:
+        #print(calSample)
+        for n in range(sensor_no):
+            #print(n+1)
+            sample[n][0][0] = sum(calSample[n,:,0])/calSamples
+            sample[n][1][0] = sum(calSample[n,:,1])/calSamples
+            sample[n][2][0] = sum(calSample[n,:,2])/calSamples
+            sample[n][0][1] = sum(calSample[n,:,3])/calSamples
+            sample[n][1][1] = sum(calSample[n,:,4])/calSamples
+            sample[n][2][1] = sum(calSample[n,:,5])/calSamples
             #print(sample)
-            # [aX gX aY gY aZ gZ] --> [aX gX aY][gY aZ gZ]
-            #sample = np.array([sample[0:3], sample[g3:]]).T
-            #print(sample)
-                currentQ = makequaternion0(sample)
 
-                a_body = np.quaternion(0,sample[n][0][0],sample[n][1][0],sample[n][2][0])
-                a_nav = rotatef(currentQ, a_body) # accel in nav frame
-                v = quaternion.as_float_array(a_nav)
-                #print(v)
-                w = abs(v)
-                #print(w)
-                x = np.where(w == np.amax(w))
-                #print(x)
-                #print(x[0])
-                #print(v[x[0]])
-                #print(sample[x[0]-1][0][0])
-                if v[x[0]] < 0:
-                    v[x[0]] = v[x[0]] + g
-                else:
-                    v[x[0]] = v[x[0]] - g
-                #print(v[x[0]])
-                qNav = quaternion.as_quat_array(v)
-                qBody = rotateb(currentQ, qNav)
-                #print(qBody)
-                Q = quaternion.as_float_array(qBody)
-            
-                #sample[0][0] = Q[1]
-                #sample[1][0] = Q[2]
-                #sample[2][0] = Q[3]
-                #print(offset)
-                offset[n,0,0] = Q[1]
-                offset[n,1,0] = Q[2]
-                offset[n,2,0] = Q[3]
-                offset[n,0,1] = sample[n][0][1]
-                offset[n,1,1] = sample[n][1][1]
-                offset[n,2,1] = sample[n][2][1]
-                #print(offset)
-            return
-        
+        magA = m.sqrt(pow(sample[0][0],2)+pow(sample[1][0],2)+pow(sample[2][0],2))
+        weight = g/magA
+    	#df = pd.DataFrame(data = calSample)
+    	#df = df.mean(axis = 0)
+    	#sample = df.to_numpy()
+    	#print(sample)
+    	# [aX gX aY gY aZ gZ] --> [aX gX aY][gY aZ gZ]
+    	#sample = np.array([sample[0:3], sample[g3:]]).T
+    	#print(sample)
+        currentQ = makequaternion0(sample)
+
+        a_body = np.quaternion(0,sample[n][0][0],sample[n][1][0],sample[n][2][0])
+        a_nav = rotatef(currentQ, a_body) # accel in nav frame
+        v = quaternion.as_float_array(a_nav)
+        #print(v)
+        w = abs(v)
+        #print(w)
+        x = np.where(w == np.amax(w))
+        #print(x)
+        #print(x[0])
+        #print(v[x[0]])
+        #print(sample[x[0]-1][0][0])
+        if v[x[0]] < 0:
+            v[x[0]] = v[x[0]] + g
         else:
-            return
+            v[x[0]] = v[x[0]] - g
+        #print(v[x[0]])
+        qNav = quaternion.as_quat_array(v)
+        qBody = rotateb(currentQ, qNav)
+        #print(qBody)
+        Q = quaternion.as_float_array(qBody)
+    
+        #sample[0][0] = Q[1]
+        #sample[1][0] = Q[2]
+        #sample[2][0] = Q[3]
+        #print(offset)
+        offset[n,0,0] = Q[1]
+        offset[n,1,0] = Q[2]
+        offset[n,2,0] = Q[3]
+        offset[n,0,1] = sample[n][0][1]
+        offset[n,1,1] = sample[n][1][1]
+        offset[n,2,1] = sample[n][2][1]
+        #print(offset)
+        return
+        
+    else:
+        return
+        
     state = [None]*sensor_no
     for n in range(sensor_no):
         #print(offset)
