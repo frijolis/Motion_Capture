@@ -20,7 +20,7 @@ import Firebase as fire
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
 description=textwrap.dedent('''This program is the socket for Motion Capture system. ESP32 Dev Module acquires data from IMUs and sends information to the computer over WiFi in UDP packages. The computer receives this data by listening on the port specified by variable UDP_PORT when the Socket.py code is running.
 
-Samples sent to the Dynamics.py program are of the following format:
+Samples (nx3x2) sent to the Dynamics.py program are of the following format:
 	
 	#sample from n-th sensor
 	sample[n],n =
@@ -28,6 +28,7 @@ Samples sent to the Dynamics.py program are of the following format:
 	 [An_Y, Gn_X],
 	 [An_Z, Gn_X]]
 '''))
+
                                  
 parser.add_argument('-t', action='store_true', default=False,
                     dest='text_file_enable',
@@ -41,6 +42,9 @@ parser.add_argument('-p', action='store_false', default=True,
 parser.add_argument('-v', action='store_true', default=False,
                     dest='verbose_output_enable',
                     help='prints a verbose output of the program to the terminal')
+parser.add_argument('-s', action='store_true', default=False,
+                    dest='testing_sample',
+                    help='prints a verbose output of the program to the terminal')
 results = parser.parse_args()
 if results.verbose_output_enable:
 	print("Verbose output enabled")
@@ -53,6 +57,10 @@ if results.verbose_output_enable:
 		time.sleep(1)
 	if results.firebase_enable:
 		print("Firebase enabled")
+		time.sleep(1)
+	if results.testing_sample:
+		print("Disregarding socket. Sending encoded sample as: 'nnta'")
+		print("\tnn - 2 digit sensor Number (1 innedxed)\n\tt - 1 digit sensor Type\t(1:accel, 2:gyro)\n\ta - one digit sensor Axis\t(1:x, 2:y, 3:z)")
 		time.sleep(1)
 ############ parser end #################
 
@@ -97,6 +105,19 @@ if results.verbose_output_enable:
 
 ################# MAIN ##################
 while True: #!!!should be listening for user input!!!
+	# pass encoded value to dynamics, ignnore further computation
+	if results.testing_sample:
+		for i in range(sensor_no):
+			accel_data = [(i+1)*100+11, (i+1)*100+12, (i+1)*100+13]
+			gyro_data = [(i+1)*100+21, (i+1)*100+22, (i+1)*100+23]
+			x = [accel_data[0], gyro_data[0]]
+			y = [accel_data[1], gyro_data[1]]
+			z = [accel_data[2], gyro_data[2]]
+			sample[i] = [x,y,z]
+			# print(len(sample[0][0][0]))
+		if results.verbose_output_enable:
+			print("Sample: \n", sample)
+		continue;
 	
 	data = sock.recvfrom(1024) #buffer size is 1024 bytes
 	
@@ -129,7 +150,7 @@ while True: #!!!should be listening for user input!!!
 			
 	if results.firebase_enable:
 		position = [[accel_data[0],accel_data[1],accel_data[2]],\
-		[gyro_data[0], gyro_data[1], gyro_data[2]]]
+			[gyro_data[0], gyro_data[1], gyro_data[2]]]
 		firedata = {"timestep %d" %timestep :{"time":(rec[0]-start_time)/1000,\
 		"sensor1":{"x":position[0][0], "y":position[0][1], "z":position[0][2]},\
 		"sensor2":{"x":position[1][0], "y":position[1][1], "z":position[1][2]}}}
