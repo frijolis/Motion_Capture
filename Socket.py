@@ -140,16 +140,14 @@ while True: #!!!should be listening for user input!!!
 			sample[i] = np.array([x,y,z])
 		if results.verbose_output_enable:
 			print("Sample number: %d" %timestep)
-			print("\n")
-			print(sample)
-			print("\n\n")
+			print("\n", sample, "\n\n")
 
 	if results.text_file_enable:
 		file.write(str(rec)+"\n")
 
 	if results.pandas_enable:
 		for i in range(sensor_no):
-			dyn.newState(sample[i],i)
+			sensors[i].newState(sample[i])
 		if timestep % 10 == 0:
 			dyn.printStates()
 			

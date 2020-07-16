@@ -164,8 +164,10 @@ class Sensor:
 		self.currentQ = dyn.orientation(self.currentQ,sample,dyn.w)
 		self.quats.append(self.currentQ);
 
-		if(self.state_loc % 100 == 0):
-			self.printStates()
+		# if(self.state_loc % 100 == 0):
+		# 	self.printStates()
+
+			
 		   #  #print(offset)
 		   #  #print(sample)
 		   #  #sample = np.subtract(sample, offset)
