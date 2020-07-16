@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import Dynamics as dyn
 import Firebase as fire
+from Sensor import Sensor
 ########### imports end #################
 
 ############## parser ###################
@@ -66,7 +67,7 @@ if results.verbose_output_enable:
 
 ########### socket setup ################
 UDP_IP = "0.0.0.0"
-UDP_PORT = 8090
+UDP_PORT = 8092
 sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM) # UDP
 sock.bind((UDP_IP, UDP_PORT))
 mes= bytes("ok",'utf-8')
@@ -93,7 +94,8 @@ if results.text_file_enable:
 	file.write("time A1_xyz G1_xyz A2_xyz G2_xyz\n")
 	if results.verbose_output_enable:
 		print("File opened")
-sensor_no = 2
+sensors = [Sensor(0), Sensor(1)]
+sensor_no = len(sensors)
 timestep = 0
 sample = np.zeros([sensor_no,3,2],dtype = float)
 if results.verbose_output_enable:
@@ -115,9 +117,12 @@ while True: #!!!should be listening for user input!!!
 			z = [accel_data[2], gyro_data[2]]
 			sample[i] = [x,y,z]
 			# print(len(sample[0][0][0]))
+
+			sensors[i].newState(sample[i])
 		if results.verbose_output_enable:
-			print("Sample: \n", sample)
-		continue;
+			print("Sample poo: \n", sample)
+
+		timestep+=1; continue;
 	
 	data = sock.recvfrom(1024) #buffer size is 1024 bytes
 	
