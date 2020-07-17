@@ -12,7 +12,16 @@ def getlastDB(db):
     last = db.child("sensor_data").order_by_child("time").limit_to_last(1).get()
     print(last.val())
     print("\n")
-    
+
+def liveDB(db,data):
+    db.child("sensor_data").set(data)
+
+def removeDB(db, time):
+    db.child("sensor_data").child("timestep %d" %time).remove()
+
+def flushDB(db):
+	db.child("sensor_data").remove()
+
 def noquote(s):
 	return s
 

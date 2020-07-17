@@ -34,13 +34,17 @@ parser.add_argument('-t', action='store_true', default=False,
                     help='makes a readings.txt file containing the master matrix information')
 parser.add_argument('-f', action='store_true', default=False,
                     dest='firebase_enable',
-                    help='sends position data to the firebase server')
+                    help='sends position data and stores on the firebase server')
+parser.add_argument('-l', action='store_true', default=False,
+                    dest='firebase_live_enable',
+                    help='creates a live table on firebase server')
 parser.add_argument('-p', action='store_false', default=True,
                     dest='pandas_enable',
                     help='prints a master matrix containing positions, velocities and accelerations used for optimization (every i steps)')
 parser.add_argument('-v', action='store_true', default=False,
                     dest='verbose_output_enable',
                     help='prints a verbose output of the program to the terminal')
+parser.add_argument('-r', type=int, default=100, help='data feedrate in sample/sec')
 results = parser.parse_args()
 if results.verbose_output_enable:
 	print("Verbose output enabled")
@@ -54,6 +58,9 @@ if results.verbose_output_enable:
 	if results.firebase_enable:
 		print("Firebase enabled")
 		time.sleep(1)
+	if results.firebase_live_enable:
+		print("Firebase live table enabled")
+		time.sleep(1)
 ############ parser end #################
 
 ########### socket setup ################
@@ -65,7 +72,7 @@ mes= bytes("ok",'utf-8')
 ######### socket setup end ##############
 
 ######### firebase setup ################
-if results.firebase_enable:
+if results.firebase_enable or results.firebase_live_enable:
 	config = {
 		"apiKey": "AIzaSyD1ajof65FRErV16r4b1A8JRqliPdJllJU", 
     		"authDomain": "cobey-2bbd1.firebaseapp.com",
@@ -77,6 +84,7 @@ if results.firebase_enable:
 	if results.verbose_output_enable:
 		print("Firebase initialized")
 		time.sleep(1)
+	fire.flushDB(db)
 ####### firebase setup end ##############
 
 ############ misc setup #################
@@ -85,26 +93,25 @@ if results.text_file_enable:
 	file.write("time A1_xyz G1_xyz A2_xyz G2_xyz\n")
 	if results.verbose_output_enable:
 		print("File opened")
-sensor_no = 2
-timestep = 0
-sample = np.zeros([sensor_no,3,2],dtype = float)
 if results.verbose_output_enable:
 	print("Listening on port: %d" %UDP_PORT)
 	time.sleep(1)
 	print("Starting...")
 	time.sleep(3)
+start_time = time.time()
+timestep_duration = 1/results.r
+sensor_no = 2
+timestep = 0
+sigma = 0.35
+sample = np.zeros([sensor_no,3,2],dtype = float)
 ############ misc setup end #############
 
 ################# MAIN ##################
 while True: #!!!should be listening for user input!!!
-	
 	data = sock.recvfrom(1024) #buffer size is 1024 bytes
-	
-	if data:
+	if data and time.time()-start_time >= timestep*timestep_duration:
 		timestep += 1
 		rec = struct.unpack('13f',data[0]) #13 float values {time + n(A_xyz + G_xyz)}
-		if timestep == 1:
-			start_time = rec[0]
 		for i in range(sensor_no):
 			accel_data = rec[1*6+1:1*6+4]
 			gyro_data = rec[1*6+4:1*6+7]
@@ -118,22 +125,29 @@ while True: #!!!should be listening for user input!!!
 			print(sample)
 			print("\n\n")
 
-	if results.text_file_enable:
-		file.write(str(rec)+"\n")
+		if results.text_file_enable:
+			file.write(str(rec)+"\n")
 
-	if results.pandas_enable:
-		for i in range(sensor_no):
-			dyn.newState(sample[i],i)
-		if timestep % 10 == 0:
-			dyn.printStates()
-			
-	if results.firebase_enable:
-		position = [[accel_data[0],accel_data[1],accel_data[2]],\
-		[gyro_data[0], gyro_data[1], gyro_data[2]]]
-		firedata = {"timestep %d" %timestep :{"time":(rec[0]-start_time)/1000,\
-		"sensor1":{"x":position[0][0], "y":position[0][1], "z":position[0][2]},\
-		"sensor2":{"x":position[1][0], "y":position[1][1], "z":position[1][2]}}}
-		fire.updateDB(db,firedata)
+		if results.pandas_enable:
+			for i in range(sensor_no):
+				dyn.newState(sample[i],i)
+			if timestep % 10 == 0:
+				dyn.printStates()
+				
+		if results.firebase_live_enable:
+			position = sample[0]
+			firedata = {"time":(time.time()-start_time),\
+			"sensor1":{"x":position[0][0], "y":position[1][0], "z":position[2][0]},\
+			"sensor2":{"x":position[0][1], "y":position[1][1], "z":position[2][1]}}
+			fire.liveDB(db,firedata)		
+				
+		if results.firebase_enable:
+			position = [[accel_data[0],accel_data[1],accel_data[2]],\
+			[gyro_data[0], gyro_data[1], gyro_data[2]]]
+			firedata = {"timestep %d" %timestep :{"time":(time.time()-start_time),\
+			"sensor1":{"x":position[0][0], "y":position[0][1], "z":position[0][2]},\
+			"sensor2":{"x":position[1][0], "y":position[1][1], "z":position[1][2]}}}
+			fire.updateDB(db,firedata)
 
 if results.text_file_enable:
 	file.close()
