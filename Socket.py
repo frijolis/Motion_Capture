@@ -153,12 +153,13 @@ while True: #!!!should be listening for user input!!!
 					sensors[i].printStates()
 		
 		if results.verbose_output_enable:
-			if timestep % 10 == 0:
+			if timestep %50 == 0:
 				print("Sample number %d" %timestep)
 				print("\n")			
-				for i in range(sensor_no):
-					print("sensor %d" %i+1)
-					print(sample[i])
+				for i in range(1,sensor_no+1):
+					
+					print("sensor %d" %i)
+					print(sample[i-1])
 					print("\n")
 
 		if results.text_file_enable:
