@@ -126,7 +126,7 @@ void buildPacket(){
   pkt.az2 = imu2.az*SENSITIVITY_ACCELEROMETER_2*9.81;
   pkt.gx2 = imu2.gx*SENSITIVITY_GYROSCOPE_245;
   pkt.gy2 = imu2.gy*SENSITIVITY_GYROSCOPE_245;
-  pkt.gz2 = imu2.gz*SENSITIVITY_GYROSCOPE_245;
+  pkt.gz2 = imu2.gz*SENSITIVITY_GYROSCOPE_245;  
 }
   
 void getData(){
