@@ -115,17 +115,17 @@ if results.verbose_output_enable:
 		
 sensors = [Sensor(0), Sensor(1)]
 start_time = time.time()
-sigma = 0.35
+sigma = 0.05
 timestep_duration = 1/results.r
 sensor_no = len(sensors)
 timestep = 0
+data = 0
 sample = np.zeros([sensor_no,3,2],dtype = float)
 ############ misc setup end #############
 
 ################# MAIN ##################
 while True: #!!!should be listening for user input!!!
-	data = sock.recvfrom(1024) #buffer size is 1024 bytes
-	if (results.simulated_socket or data) and time.time()-start_time >= timestep*timestep_duration:
+	if time.time()-start_time >= timestep*timestep_duration:
 		timestep += 1
 		if results.simulated_socket:
 			for i in range(sensor_no):
@@ -134,9 +134,25 @@ while True: #!!!should be listening for user input!!!
 				z = [np.random.normal(9.81, sigma), np.random.normal(0, sigma)]
 				sample[i] = np.array([x,y,z])
 
+		elif results.testing_sample:
+			for i in range(sensor_no):
+				accel_data = [(i+1)*100+11, (i+1)*100+12, (i+1)*100+13]
+				gyro_data = [(i+1)*100+21, (i+1)*100+22, (i+1)*100+23]
+				x = [accel_data[0], gyro_data[0]]
+				y = [accel_data[1], gyro_data[1]]
+				z = [accel_data[2], gyro_data[2]]
+				sample[i] = [x,y,z]
+
+				sensors[i].newState(sample[i])
+			if results.verbose_output_enable:
+				print("Sample poo: \n", sample)
+		
 		###### Unpacking data #####
 		else:
+			data = sock.recvfrom(1024) #buffer size is 1024 bytes
 			rec = struct.unpack('13f',data[0]) #13 float values {time+n(A_xyz+G_xyz)}
+			if results.text_file_enable:
+				file.write(str(rec)+"\n")
 			for i in range(sensor_no):
 				accel_data = rec[i*6+1:i*6+4]
 				gyro_data = rec[i*6+4:i*6+7]
@@ -144,6 +160,8 @@ while True: #!!!should be listening for user input!!!
 				y = [accel_data[1], gyro_data[1]]
 				z = [accel_data[2], gyro_data[2]]
 				sample[i] = np.array([x,y,z])
+		
+		
 		#### Unpacking data end ####
 		
 		if results.pandas_enable:
@@ -161,9 +179,6 @@ while True: #!!!should be listening for user input!!!
 					print("sensor %d" %i)
 					print(sample[i-1])
 					print("\n")
-
-		if results.text_file_enable:
-			file.write(str(rec)+"\n")
 				
 		if results.firebase_live_enable:
 			position = sample[0]
@@ -172,7 +187,7 @@ while True: #!!!should be listening for user input!!!
 			"sensor2":{"x":position[0,1], "y":position[1,1], "z":position[2,1]}}
 			fire.liveDB(db,firedata)		
 				
-		if results.firebase_enable:
+		elif results.firebase_enable:
 			position = sample[0]
 			firedata = {"timestep %d" %timestep :{"time":(time.time()-start_time),\
 			"sensor1":{"x":position[0,0], "y":position[1,0], "z":position[2,0]},\
@@ -181,21 +196,8 @@ while True: #!!!should be listening for user input!!!
 
 ################# other input modes #########################
 #testing sample
-	if results.testing_sample:
-		for i in range(sensor_no):
-			accel_data = [(i+1)*100+11, (i+1)*100+12, (i+1)*100+13]
-			gyro_data = [(i+1)*100+21, (i+1)*100+22, (i+1)*100+23]
-			x = [accel_data[0], gyro_data[0]]
-			y = [accel_data[1], gyro_data[1]]
-			z = [accel_data[2], gyro_data[2]]
-			sample[i] = [x,y,z]
 
-			sensors[i].newState(sample[i])
-		if results.verbose_output_enable:
-			print("Sample poo: \n", sample)
 
-		timestep+=1
-		continue
 
 if results.text_file_enable:
 	file.close()
