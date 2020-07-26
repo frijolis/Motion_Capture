@@ -119,35 +119,14 @@ sigma = 0.05
 timestep_duration = 1/results.r
 sensor_no = len(sensors)
 timestep = 0
-data = 0
 sample = np.zeros([sensor_no,3,2],dtype = float)
 ############ misc setup end #############
 
 ################# MAIN ##################
 while True: #!!!should be listening for user input!!!
-<<<<<<< HEAD
 	if time.time()-start_time >= timestep*timestep_duration:
-=======
-
-	# pass encoded value to dynamics, ignnore further computation
-	if results.testing_sample:
-		for i in range(sensor_no):
-			accel_data = [(i+1)*100+11, (i+1)*100+12, (i+1)*100+13]
-			gyro_data = [(i+1)*100+21, (i+1)*100+22, (i+1)*100+23]
-			x = [accel_data[0], gyro_data[0]]
-			y = [accel_data[1], gyro_data[1]]
-			z = [accel_data[2], gyro_data[2]]
-			sample[i] = [x,y,z]
-			# print(len(sample[0][0][0]))
-
-			sensors[i].newState(sample[i])
-		timestep+=1; continue;
-
-		
-	data = sock.recvfrom(1024) #buffer size is 1024 bytes
-	if (results.simulated_socket or data) and time.time()-start_time >= timestep*timestep_duration:
->>>>>>> d62c0e9fab0ecdb9abd3b8695cb06cfb580ce5d7
 		timestep += 1
+
 		if results.simulated_socket:
 			for i in range(sensor_no):
 				x = [np.random.normal(0, sigma), np.random.normal(0, sigma)]
@@ -168,7 +147,7 @@ while True: #!!!should be listening for user input!!!
 			if results.verbose_output_enable:
 				print("Sample poo: \n", sample)
 		
-		###### Unpacking data #####
+		###### Unpacking sensor data #####
 		else:
 			data = sock.recvfrom(1024) #buffer size is 1024 bytes
 			rec = struct.unpack('13f',data[0]) #13 float values {time+n(A_xyz+G_xyz)}
@@ -183,7 +162,7 @@ while True: #!!!should be listening for user input!!!
 				sample[i] = np.array([x,y,z])
 		
 		
-		#### Unpacking data end ####
+		#### Unpacking sensor data end ####
 		
 		if results.pandas_enable:
 			for i in range(sensor_no):
@@ -214,11 +193,6 @@ while True: #!!!should be listening for user input!!!
 			"sensor1":{"x":position[0,0], "y":position[1,0], "z":position[2,0]},\
 			"sensor2":{"x":position[0,1], "y":position[1,1], "z":position[2,1]}}}
 			fire.updateDB(db,firedata)
-
-################# other input modes #########################
-#testing sample
-
-
 
 if results.text_file_enable:
 	file.close()
