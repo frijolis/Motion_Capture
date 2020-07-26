@@ -125,7 +125,28 @@ sample = np.zeros([sensor_no,3,2],dtype = float)
 
 ################# MAIN ##################
 while True: #!!!should be listening for user input!!!
+<<<<<<< HEAD
 	if time.time()-start_time >= timestep*timestep_duration:
+=======
+
+	# pass encoded value to dynamics, ignnore further computation
+	if results.testing_sample:
+		for i in range(sensor_no):
+			accel_data = [(i+1)*100+11, (i+1)*100+12, (i+1)*100+13]
+			gyro_data = [(i+1)*100+21, (i+1)*100+22, (i+1)*100+23]
+			x = [accel_data[0], gyro_data[0]]
+			y = [accel_data[1], gyro_data[1]]
+			z = [accel_data[2], gyro_data[2]]
+			sample[i] = [x,y,z]
+			# print(len(sample[0][0][0]))
+
+			sensors[i].newState(sample[i])
+		timestep+=1; continue;
+
+		
+	data = sock.recvfrom(1024) #buffer size is 1024 bytes
+	if (results.simulated_socket or data) and time.time()-start_time >= timestep*timestep_duration:
+>>>>>>> d62c0e9fab0ecdb9abd3b8695cb06cfb580ce5d7
 		timestep += 1
 		if results.simulated_socket:
 			for i in range(sensor_no):

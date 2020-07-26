@@ -19,6 +19,7 @@ class Sensor:
 		self.sample_count = 0
 		self.num_cal_samples = 10
 		self.state_loc = 0
+		self.cal_samples = np.zeros((self.num_cal_samples,6), dtype=float)
 		self.offset = np.empty((3,2), dtype=float)
 		# [aX gX aY gY aZ gZ]
 		# self.cal_samples = np.zeros((num_cal_samples,6), dtype=float) made local in newstate
@@ -51,6 +52,7 @@ class Sensor:
 		v = quaternion.as_float_array(a_nav)
 		u = abs(v)
 		x = np.where(u == np.amax(u))
+		######## TODO
 		# x = np.where(v == np.amax(abs(v)))
 		# print("vx0 ", v[x[0]])
 		# print(x)
@@ -67,13 +69,6 @@ class Sensor:
 		#print(qBody)
 		Q = quaternion.as_float_array(qBody)
 	
-
-		# offset[n,0,0] = Q[1]
-		# offset[n,1,0] = Q[2]
-		# offset[n,2,0] = Q[3]
-		# offset[n,0,1] = sample[n][0][1]
-		# offset[n,1,1] = sample[n][1][1]
-		# offset[n,2,1] = sample[n][2][1]
 
 		self.offset[:,0] = Q[1:]
 		self.offset[:,1] = sample[:,1]
@@ -114,6 +109,25 @@ class Sensor:
 
 		return state.T
 
+	# Returns true if calibrating
+	def checkCali(self, sample):
+		# collect samples for calibration
+		if self.sample_count < self.num_cal_samples:
+			self.cal_samples[self.sample_count, 0:3] = sample[:, 0]	# accel
+			self.cal_samples[self.sample_count, 3:6] = sample[:, 1]	# gyro
+
+			self.sample_count += 1
+			return True
+			
+		if self.sample_count == self.num_cal_samples:
+			# TODO sample returned fromm cal unused
+			sample = self.calibrate(self.cal_samples)
+			print("Calibration Samples:\n", self.cal_samples)
+			self.sample_count += 1
+			return True
+
+		return False
+
 
 	# Called by socket.  Takes sample, calculates position and velocity,
 	# composes in new state and appends to state array.
@@ -123,25 +137,9 @@ class Sensor:
 	# output: new 3x5 state
 	def newState(self,sample):
 		
-		# collect samples for calibration
-		cal_samples = np.zeros((self.num_cal_samples,6), dtype=float)
-		if self.sample_count < self.num_cal_samples:
-			cal_samples[self.sample_count, 0:3] = sample[:, 0]	# accel
-			cal_samples[self.sample_count, 3:6] = sample[:, 1]	# gyro
-			# self.cal_samples[i,0] = sample[0][0]
-			# self.cal_samples[i,1] = sample[1][0]
-			# self.cal_samples[i,2] = sample[2][0]
-			# self.cal_samples[i,3] = sample[0][1]
-			# self.cal_samples[i,4] = sample[1][1]
-			# self.cal_samples[i,5] = sample[2][1]
-			self.sample_count += 1
+		if(self.checkCali(sample)):
 			return
-			
-		if self.sample_count == self.num_cal_samples:
-			# TODO sample returned fromm cal unused
-			sample = self.calibrate(cal_samples)
-			self.sample_count += 1
-			return
+		
 			
 		# else:
 		# 	# TODO does this make sense??
@@ -168,18 +166,6 @@ class Sensor:
 		# 	self.printStates()
 
 			
-		   #  #print(offset)
-		   #  #print(sample)
-		   #  #sample = np.subtract(sample, offset)
-		# sample = sample - offset
-		# sample[:][0] = sample[n][:][0] * g_weight
-		   #  #print(sample)
-
-		   #  # init state array
-		   #  state = getState(sample[n], i)
-		   #  i += 1
-		   #  states.append(state.tolist())
-		   #  updateQuaternion(sample)
 
 	def printStates(self):
 		# convert 3d array to 2d pandas
