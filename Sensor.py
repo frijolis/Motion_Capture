@@ -21,6 +21,10 @@ class Sensor:
 		self.state_loc = 0
 		self.cal_samples = np.zeros((self.num_cal_samples,6), dtype=float)
 		self.offset = np.empty((3,2), dtype=float)
+		self.g_weight = 0
+		# self.using_a = 0
+
+
 		# [aX gX aY gY aZ gZ]
 		# self.cal_samples = np.zeros((num_cal_samples,6), dtype=float) made local in newstate
 
@@ -78,34 +82,60 @@ class Sensor:
 	# Processes sensor data from socket and stores state information in master array
 	# input: 3x2
 	# output: appends 5x3 state to states
-	def getState(self, sample):
+	def getState(self, sample, using_a, prev_sens_pos):
 		state = np.zeros((3,5), dtype=float)
-		
-		a_body = np.quaternion(0,sample[0,0],sample[1,0],sample[2,0])
-		a_nav = dyn.rotatef(self.currentQ, a_body) # accel in nav frame
-		a_nav_subg = dyn.subtractg(a_nav)
-		
-		# Acceleration - body
-		a_body = quaternion.as_float_array(a_body)
-		state[:,4] = a_body[1:]
-		# Acceleration - nav
-		a_nav_subg = quaternion.as_float_array(a_nav_subg)
-		state[0,2] = a_nav_subg[1]
-		state[1,2] = a_nav_subg[2]
-		state[2,2] = a_nav_subg[3]
-		# Gyroscope
-		state[0,3] = sample[0,1]
-		state[1,3] = sample[1,1]
-		state[2,3] = sample[2,1]
-		# Velocity
-		i = self.state_loc
-		state[0,1] = dyn.speed(self.states[i-1][1][0], self.states[i-1][2][0], dyn.w) #speed(v0 a t)
-		state[1,1] = dyn.speed(self.states[i-1][1][1], self.states[i-1][2][1], dyn.w)
-		state[2,1] = dyn.speed(self.states[i-1][1][2], self.states[i-1][2][2], dyn.w)
-		# Position
-		state[0,0] = dyn.position(self.states[i-1][0][0], self.states[i-1][1][0], self.states[i-1][2][0], dyn.w) #position(s0,v0,a,t)
-		state[1,0] = dyn.position(self.states[i-1][0][1], self.states[i-1][1][1], self.states[i-1][2][1], dyn.w)
-		state[2,0] = dyn.position(self.states[i-1][0][2], self.states[i-1][1][2], self.states[i-1][2][2], dyn.w)
+
+		if(using_a):
+			a_body = np.quaternion(0,sample[0,0],sample[1,0],sample[2,0])
+			a_nav = dyn.rotatef(self.currentQ, a_body) # accel in nav frame
+			a_nav_subg = dyn.subtractg(a_nav)
+
+			# Acceleration - body
+			a_body = quaternion.as_float_array(a_body)
+			state[:,4] = a_body[1:] # position
+			# Acceleration - nav
+			a_nav_subg = quaternion.as_float_array(a_nav_subg)
+			state[0,2] = a_nav_subg[1]
+			state[1,2] = a_nav_subg[2]
+			state[2,2] = a_nav_subg[3]
+			# Gyroscope
+			state[0,3] = sample[0,1]
+			state[1,3] = sample[1,1]
+			state[2,3] = sample[2,1]
+			# Velocity
+			i = self.state_loc
+			state[0,1] = dyn.speed(self.states[i-1][1][0], self.states[i-1][2][0], dyn.w) #speed(v0 a t)
+			state[1,1] = dyn.speed(self.states[i-1][1][1], self.states[i-1][2][1], dyn.w)
+			state[2,1] = dyn.speed(self.states[i-1][1][2], self.states[i-1][2][2], dyn.w)
+			# Position
+			state[0,0] = dyn.position(self.states[i-1][0][0], self.states[i-1][1][0], self.states[i-1][2][0], dyn.w) #position(s0,v0,a,t)
+			state[1,0] = dyn.position(self.states[i-1][0][1], self.states[i-1][1][1], self.states[i-1][2][1], dyn.w)
+			state[2,0] = dyn.position(self.states[i-1][0][2], self.states[i-1][1][2], self.states[i-1][2][2], dyn.w)
+			
+		else: # not using accelerometer values
+
+			# Gyroscope
+			state[0,3] = sample[0,1]
+			state[1,3] = sample[1,1]
+			state[2,3] = sample[2,1]
+
+			# rotate old pos about prev sensor old position
+			last_pos = self.states[self.state_loc][4]
+			p = dyn.orbit( np.asarray(last_pos), np.asarray(prev_sens_pos), self.currentQ )
+			state[:,4] = p
+			# state[0,0] = p[0]
+			# state[0,1] = p[1]
+			# state[0,2] = p[2]
+
+			# Velocity
+			# i = self.state_loc
+			# state[0,1] = dyn.speed(self.states[i-1][1][0], self.states[i-1][2][0], dyn.w) #speed(v0 a t)
+			# state[1,1] = dyn.speed(self.states[i-1][1][1], self.states[i-1][2][1], dyn.w)
+			# state[2,1] = dyn.speed(self.states[i-1][1][2], self.states[i-1][2][2], dyn.w)
+			# # Position
+			# state[0,0] = dyn.position(self.states[i-1][0][0], self.states[i-1][1][0], self.states[i-1][2][0], dyn.w) #position(s0,v0,a,t)
+			# state[1,0] = dyn.position(self.states[i-1][0][1], self.states[i-1][1][1], self.states[i-1][2][1], dyn.w)
+			# state[2,0] = dyn.position(self.states[i-1][0][2], self.states[i-1][1][2], self.states[i-1][2][2], dyn.w)
 
 		return state.T
 
@@ -119,10 +149,13 @@ class Sensor:
 			self.sample_count += 1
 			return True
 			
-		if self.sample_count == self.num_cal_samples:
+		elif self.sample_count == self.num_cal_samples:
 			# TODO sample returned fromm cal unused
 			sample = self.calibrate(self.cal_samples)
 			print("Calibration Samples:\n", self.cal_samples)
+			
+			mag_a = m.sqrt(pow(sample[0][0],2)+pow(sample[1][0],2)+pow(sample[2][0],2))
+			self.g_weight = mag_a/dyn.g
 			self.sample_count += 1
 			return True
 
@@ -135,7 +168,7 @@ class Sensor:
 	#   sample: 3x2 np array
 	#   n: sensor id
 	# output: new 3x5 state
-	def newState(self,sample):
+	def newState(self,sample, prev_sens):
 		
 		if(self.checkCali(sample)):
 			return
@@ -147,23 +180,47 @@ class Sensor:
 			
 		# state = [None]*sensor_no
 		sample = np.subtract(sample, self.offset)
-		mag_a = m.sqrt(pow(sample[0][0],2)+pow(sample[1][0],2)+pow(sample[2][0],2))
-		g_weight = mag_a/dyn.g
-		sample[:][0] / g_weight
+		
+		sample[:][0] / self.g_weight
 		# print("Sample: ", sample)
 
-		# init state array
-		state = self.getState(sample);
+		prev_sens_pos = prev_sens.states[prev_sens.state_loc-1][4]
+		state = self.getState(sample, 0, prev_sens_pos);
 		#saveState
 		self.states.append(state.tolist())
 		self.state_loc += 1;
 		
-		# update quaternion
-		self.currentQ = dyn.orientation(self.currentQ,sample,dyn.w)
+		# make quat
+		self.currentQ = dyn.makequaternion(sample)
 		self.quats.append(self.currentQ);
 
-		# if(self.state_loc % 100 == 0):
-		# 	self.printStates()
+		if(self.state_loc % 100 == 0):
+			self.printStates()
+
+	# for shoulder sens
+	def newStateS0(self,sample):
+		
+		if(self.checkCali(sample)):
+			return
+			
+		# state = [None]*sensor_no
+		sample = np.subtract(sample, self.offset)
+		
+		sample[:][0] / self.g_weight
+		# print("Sample: ", sample)
+
+		# init state array
+		state = self.getState(sample, 1, 0); # use old getState using accel
+		#saveState
+		self.states.append(state.tolist())
+		self.state_loc += 1;
+		
+		# use old quat method for s0
+		self.currentQ = dyn.orientation(self.currentQ,sample)
+		self.quats.append(self.currentQ);
+
+		if(self.state_loc % 100 == 0):
+			self.printStates()
 
 			
 

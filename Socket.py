@@ -123,6 +123,16 @@ sample = np.zeros([sensor_no,3,2],dtype = float)
 ############ misc setup end #############
 
 ################# MAIN ##################
+
+def getState(i, sample, sensors):
+	# first sensor (shoulder)
+	if(i==0):
+		sensors[i].newStateS0(sample[i])
+	else:
+		# pass previous sensor
+		sensors[i].newState(sample[i], sensors[i-1])
+
+
 while True: #!!!should be listening for user input!!!
 
 	# pass encoded value to dynamics, ignnore further computation
@@ -136,10 +146,10 @@ while True: #!!!should be listening for user input!!!
 			sample[i] = [x,y,z]
 			# print(len(sample[0][0][0]))
 
-			sensors[i].newState(sample[i])
+			getState(i, sample, sensors)
 		timestep+=1; continue;
 
-		
+
 	data = sock.recvfrom(1024) #buffer size is 1024 bytes
 	if (results.simulated_socket or data) and time.time()-start_time >= timestep*timestep_duration:
 		timestep += 1
@@ -164,7 +174,7 @@ while True: #!!!should be listening for user input!!!
 		
 		if results.pandas_enable:
 			for i in range(sensor_no):
-				sensors[i].newState(sample[i])
+				getState(i, sample, sensors)
 				if timestep % 10 == 0:
 					sensors[i].printStates()
 		
@@ -206,7 +216,8 @@ while True: #!!!should be listening for user input!!!
 			z = [accel_data[2], gyro_data[2]]
 			sample[i] = [x,y,z]
 
-			sensors[i].newState(sample[i])
+			getState(i, sample, sensors)
+
 		if results.verbose_output_enable:
 			print("Sample poo: \n", sample)
 
