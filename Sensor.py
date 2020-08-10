@@ -122,6 +122,7 @@ class Sensor:
 			# rotate old pos about prev sensor old position
 			last_pos = self.states[self.state_loc][4]
 			p = dyn.orbit( np.asarray(last_pos), np.asarray(prev_sens_pos), self.currentQ )
+			print(p)
 			state[:,4] = p
 			# state[0,0] = p[0]
 			# state[0,1] = p[1]
@@ -235,9 +236,9 @@ class Sensor:
 		df = pd.DataFrame(data = mat, columns=['px','py','pz', 'vx','vy','vz', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'abx', 'aby', 'abz'])
 		
 		
-		print("\n\nStates array, sensor#", self.id);
+		#print("\n\nStates array, sensor#", self.id);
 		pd.set_option('display.max_columns', None)
-		print(df);
+		#print(df);
 
 	#    print("states len: ", len(states)) #102
 	#    print("states[0] len: ", len(states[0])) #44

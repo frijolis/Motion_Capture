@@ -43,7 +43,8 @@ def beta0(samples):
 
 def gamma0(samples):
     return m.pi + m.atan2(samples[1,0],samples[2,0])
-    
+   
+#remove the negative signs for gyro estimation
 def alpha(samples,w):
     return -w*samples[2,1]
 
@@ -72,6 +73,8 @@ def orientation(q0,samples):
 
 # rotate a around b
 # a,b 3-vec position
+
+#!!!! the quaternion q is not updated with makequaternion function !!!!
 def orbit(a, b, q):
     aminb = a-b
     rotated = rotatef(q, np.quaternion(0, aminb[0], aminb[1], aminb[2]))
