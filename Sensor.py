@@ -49,10 +49,10 @@ class Sensor:
 		sample[2][1] = sum(calSample[:,5])/n
 		#print(sample)
 
-		currentQ = dyn.makequaternion0(sample)
+		self.currentQ = dyn.makequaternion0(sample)
 
 		a_body = np.quaternion(0,sample[0][0],sample[1][0],sample[2][0])
-		a_nav = dyn.rotatef(currentQ, a_body) # accel in nav frame
+		a_nav = dyn.rotatef(self.currentQ, a_body) # accel in nav frame
 		v = quaternion.as_float_array(a_nav)
 		u = abs(v)
 		x = np.where(u == np.amax(u))
