@@ -134,7 +134,6 @@ def getState(i, sample, sensors):
 
 
 while True: #!!!should be listening for user input!!!
-<<<<<<< HEAD
 
 	# pass encoded value to dynamics, ignnore further computation
 	if results.testing_sample:
@@ -153,9 +152,6 @@ while True: #!!!should be listening for user input!!!
 
 	data = sock.recvfrom(1024) #buffer size is 1024 bytes
 	if (results.simulated_socket or data) and time.time()-start_time >= timestep*timestep_duration:
-=======
-	if time.time()-start_time >= timestep*timestep_duration:
->>>>>>> bd6b5c7c608f047b54f78a74f7bd64772b250d3a
 		timestep += 1
 
 		if results.simulated_socket:
@@ -164,19 +160,6 @@ while True: #!!!should be listening for user input!!!
 				y = [np.random.normal(0, sigma), np.random.normal(0, sigma)]
 				z = [np.random.normal(9.81, sigma), np.random.normal(0, sigma)]
 				sample[i] = np.array([x,y,z])
-
-		elif results.testing_sample:
-			for i in range(sensor_no):
-				accel_data = [(i+1)*100+11, (i+1)*100+12, (i+1)*100+13]
-				gyro_data = [(i+1)*100+21, (i+1)*100+22, (i+1)*100+23]
-				x = [accel_data[0], gyro_data[0]]
-				y = [accel_data[1], gyro_data[1]]
-				z = [accel_data[2], gyro_data[2]]
-				sample[i] = [x,y,z]
-
-				sensors[i].newState(sample[i])
-			if results.verbose_output_enable:
-				print("Sample poo: \n", sample)
 		
 		###### Unpacking sensor data #####
 		else:
@@ -225,28 +208,7 @@ while True: #!!!should be listening for user input!!!
 			"sensor2":{"x":position[0,1], "y":position[1,1], "z":position[2,1]}}}
 			fire.updateDB(db,firedata)
 
-<<<<<<< HEAD
-################# other input modes #########################
-#testing sample
-	if results.testing_sample:
-		for i in range(sensor_no):
-			accel_data = [(i+1)*100+11, (i+1)*100+12, (i+1)*100+13]
-			gyro_data = [(i+1)*100+21, (i+1)*100+22, (i+1)*100+23]
-			x = [accel_data[0], gyro_data[0]]
-			y = [accel_data[1], gyro_data[1]]
-			z = [accel_data[2], gyro_data[2]]
-			sample[i] = [x,y,z]
 
-			getState(i, sample, sensors)
-
-		if results.verbose_output_enable:
-			print("Sample poo: \n", sample)
-
-		timestep+=1
-		continue
-
-=======
->>>>>>> bd6b5c7c608f047b54f78a74f7bd64772b250d3a
 if results.text_file_enable:
 	file.close()
 
