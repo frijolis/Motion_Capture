@@ -44,7 +44,7 @@ def beta0(samples):
 def gamma0(samples):
     return m.pi + m.atan2(samples[1,0],samples[2,0])
    
-#TODO: remove the negative signs for gyro estimation (changed to positive, use rotateb instead in sensor.py)
+#TODO: remove the negative signs for gyro estimation (changed to positive, use rotateb instead in sensor.py) 8/10
 def alpha(samples,w):
     return w*samples[2,1]
 
