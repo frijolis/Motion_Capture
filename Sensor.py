@@ -87,7 +87,8 @@ class Sensor:
 
 		if(using_a):
 			a_body = np.quaternion(0,sample[0,0],sample[1,0],sample[2,0])
-			a_nav = dyn.rotatef(self.currentQ, a_body) # accel in nav frame
+			#changed angles to positive and used rotateb to get accel in nav frame 8/10/19
+			a_nav = dyn.rotateb(self.currentQ, a_body) # accel in nav frame
 			a_nav_subg = dyn.subtractg(a_nav)
 
 			# Acceleration - body
