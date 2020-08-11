@@ -46,13 +46,13 @@ def gamma0(samples):
    
 #TODO: remove the negative signs for gyro estimation
 def alpha(samples,w):
-    return -w*samples[2,1]
+    return w*samples[2,1]
 
 def beta(samples,w):
-    return -w*samples[1,1]
+    return w*samples[1,1]
 
 def gamma(samples,w):
-    return -w*samples[0,1]
+    return w*samples[0,1]
 
 def makequaternion0(samples):
     q = np.quaternion(m.cos(0.5*alpha0(samples))*m.cos(0.5*beta0(samples))*m.cos(0.5*gamma0(samples)) + m.sin(0.5*alpha0(samples))*m.sin(0.5*beta0(samples))*m.sin(0.5*gamma0(samples)), 
