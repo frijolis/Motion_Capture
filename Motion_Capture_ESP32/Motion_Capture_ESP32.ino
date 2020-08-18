@@ -37,17 +37,27 @@ void buildPacket();
 //void printAttitude(float ax, float ay, float az, float mx, float my, float mz);
 
 /* WiFi network name and password */
-const char* ssid = "MySpectrumWiFieb-2G";
-const char* password =  "outletwalnut604";
+//const char* ssid = "MySpectrumWiFi26-2G";
+//const char* password = "islandremedy562";
+//const char* ssid = "BB-guests";
+//const char* password = "We are visiting the 4 bakers!";
+const char* ssid = "BB";
+const char* password = "1artist 2runner 3surfer 4gymnast!";
+
 //List of IP addresses of computers receiving the data
-const int no_IPs = 3;
-const char * udpAddress[no_IPs] = {"192.168.1.232","192.168.1.67","192.168.1.119"};
+
+//const int no_IPs = 3;
+//const char * udpAddress[no_IPs] = {"192.168.1.232","192.168.1.67","192.168.1.119"};
+const int no_IPs = 1;
+const char * udpAddress[no_IPs] = {"192.168.86.34"};
 const int udpPort = 8090;
 struct pkt {float Time, ax1, ay1, az1, gx1, gy1, gz1, ax2, ay2, az2, gx2, gy2, gz2;} pkt;
 //create UDP instance
 WiFiUDP udp;
 char buffer[1024];
 float timestamp = 0;
+
+
 
 void setup(){
   Serial.begin(115200);
@@ -82,7 +92,6 @@ void setup(){
   Serial.println("\nStarting connection to server...");
   //This initializes udp and transfer buffer
   udp.begin(udpPort);
-  
 }
 
 void loop(){  
@@ -96,23 +105,21 @@ void loop(){
     {
       if (udp.beginPacket(udpAddress[i], udpPort) == 1)
         {
-        udp.write((byte *) &pkt, sizeof pkt);
-        udp.endPacket();
+        int sentByte = udp.write((byte *) &pkt, sizeof pkt);
+        int endPacketRight = udp.endPacket();
+      
+        Serial.print("sent packet successful: ");
+        Serial.println(endPacketRight);
+        Serial.print("IP: ");
+        Serial.println(udpAddress[i]);
         }
       else Serial.print("UDP Address1 down");
     }
-    /*if (udp.beginPacket(udpAddress[0], udpPort) == 0)
-    {
-      udp.beginPacket(udpAddress[1], udpPort);
-    }
-     udp.write((byte *) &pkt, sizeof pkt);
-     udp.endPacket();
-    //processing incoming packet, must be called before reading the buffer
-  */
   }
 }
 
 //////////////////////FUNCTIONS/////////////////////////////////
+
 void buildPacket(){
   pkt.Time = (float)timestamp;
   pkt.ax1 = imu1.ax*SENSITIVITY_ACCELEROMETER_2*9.81;

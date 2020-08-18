@@ -2,7 +2,7 @@ import numpy as np
 import quaternion
 import math as m
 import pandas as pd
-
+from numpy import linalg as la
 
 
 #Quaternion Maths
@@ -93,3 +93,37 @@ def position(s0,v0,a,t):
     return s0 + v0 * t + 0.5 * a * pow(t,2)
 def speed(v0,a,t):
     return v0 + a * t
+
+# # # # # # # # # # #  Gyroscope Estimation# # # # # # # # # # # # # # 
+
+# Inputs:
+#   x,y,z - gyroscope x y z values
+#   a,b,g - offset angle from z y x navigation axes, respectively
+def sens_to_nav(x,y,z,a,b,g):
+    z_nav = m.cos(b)*m.cos(g)*z - m.sin(b)*x + m.sin(g)*y
+    y_nav = m.cos(a)*m.cos(c)*y - m.sin(g)*z + m.sin(a)*x
+    x_nav = m.cos(b)*m.cos(a)*x - m.sin(a)*y + m.sin(b)*z
+
+    return np.array( [x_nav,y_nav,z_nav] )
+
+# Inputs:
+#   x,y,z - gyroscope x y z values
+def sensor_to_q(x,y,z):
+    norm = la.norm( np.array([x,y,z]) )
+    theta = norm*w; # where w is period
+
+    i = m.cos(theta/2.0)
+    x = x/norm*m.sin(theta/2.0)
+    y = y/norm*m.sin(theta/2.0)
+    z = z/norm*m.sin(theta/2.0)
+
+    return np.quaternion(i,x,y,z)
+
+
+
+
+
+
+
+
+

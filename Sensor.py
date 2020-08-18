@@ -4,12 +4,9 @@ import math as m
 import pandas as pd
 import Dynamics as dyn
 
-# instance variables:
-#	id, sample, quaternions, states
-class Sensor:
-	""" Handles computation of sensor samples """
-
-	def __init__(self, id):
+# Wrapper for state array
+class State:
+	def __init__(self, id, last_sensor):
 		self.id = id 
 		# xyz * a_body a_nav gyro v p
 		self.states = [[[0 for axis in range(3)] for variables in range(5)]] # tx5x3
@@ -22,6 +19,28 @@ class Sensor:
 		self.cal_samples = np.zeros((self.num_cal_samples,6), dtype=float)
 		self.offset = np.empty((3,2), dtype=float)
 		self.g_weight = 0
+		self.last_sensor = last_sensor
+
+
+# instance variables:
+#	id, sample, quaternions, states
+class Sensor:
+	""" Handles computation of sensor samples """
+
+	def __init__(self, id, last_sensor):
+		self.id = id 
+		# xyz * a_body a_nav gyro v p
+		self.states = [[[0 for axis in range(3)] for variables in range(5)]] # tx5x3
+		# self.states = [[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]]
+		self.currentQ = np.quaternion(0,0,0,0)
+		self.quats = [self.currentQ]
+		self.sample_count = 0
+		self.num_cal_samples = 10
+		self.state_loc = 0
+		self.cal_samples = np.zeros((self.num_cal_samples,6), dtype=float)
+		self.offset = np.empty((3,2), dtype=float)
+		self.g_weight = 0
+		self.last_sensor = last_sensor
 		# self.using_a = 0
 
 
@@ -123,7 +142,7 @@ class Sensor:
 			# rotate old pos about prev sensor old position
 			last_pos = self.states[self.state_loc][4]
 			p = dyn.orbit( np.asarray(last_pos), np.asarray(prev_sens_pos), self.currentQ )
-			print(p)
+			print(p, end="\r", flush=True)
 			state[:,4] = p
 			# state[0,0] = p[0]
 			# state[0,1] = p[1]
@@ -154,7 +173,7 @@ class Sensor:
 		elif self.sample_count == self.num_cal_samples:
 			# TODO sample returned fromm cal unused
 			sample = self.calibrate(self.cal_samples)
-			print("Calibration Samples:\n", self.cal_samples)
+			print("Calibration Samples s{}:\n".format(self.id), self.cal_samples)
 			
 			mag_a = m.sqrt(pow(sample[0][0],2)+pow(sample[1][0],2)+pow(sample[2][0],2))
 			self.g_weight = mag_a/dyn.g
@@ -199,6 +218,18 @@ class Sensor:
 		if(self.state_loc % 100 == 0):
 			self.printStates()
 
+	# for non-0 sensor
+	def gyroState(self, sample):
+
+		# abg from cali
+		dyn.sens_to_nav(sample[0,1],sample[1,1],sample[2,1], a, b, g)
+		q = dyn.sensor_to_q(pos)
+		# rotate elbow around shoulder
+		q = orbit()
+		# subtract shoulder rotate from elbow?
+		# rotate wrist about elbow?
+
+
 	# for shoulder sens
 	def newStateS0(self,sample):
 		
@@ -225,7 +256,6 @@ class Sensor:
 			self.printStates()
 
 			
-
 	def printStates(self):
 		# convert 3d array to 2d pandas
 		mat = []
@@ -241,5 +271,4 @@ class Sensor:
 		pd.set_option('display.max_columns', None)
 		#print(df);
 
-	#    print("states len: ", len(states)) #102
-	#    print("states[0] len: ", len(states[0])) #44
+

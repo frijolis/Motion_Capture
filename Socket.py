@@ -113,7 +113,11 @@ if results.verbose_output_enable:
 	print("Starting...")
 	time.sleep(3)
 		
-sensors = [Sensor(0), Sensor(1)]
+# In itialize sensors
+s0 = Sensor(0, None)
+s1 = Sensor(1, s0)
+sensors = [s0, s1]
+
 start_time = time.time()
 sigma = 0.0
 timestep_duration = 1/results.r
@@ -155,11 +159,14 @@ while True: #!!!should be listening for user input!!!
 
 				sensors[i].newState(sample[i])
 			if results.verbose_output_enable:
-				print("Sample poo: \n", sample)
+				print("Testing Sample: \n", sample)
 		
 		###### Unpacking sensor data #####
 		else:
+			
+
 			data = sock.recvfrom(1024) #buffer size is 1024 bytes
+
 			rec = struct.unpack('13f',data[0]) #13 float values {time+n(A_xyz+G_xyz)}
 			if results.text_file_enable:
 				file.write(str(rec)+"\n")
