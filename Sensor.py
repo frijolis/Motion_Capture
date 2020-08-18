@@ -3,23 +3,51 @@ import quaternion
 import math as m
 import pandas as pd
 import Dynamics as dyn
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+# handler.setLevel(logging.DEBUG)
+
+class vec3:
+
+	def __init__(self, ls=[0,0,0]):
+		self.x, self.y, self.z = ls[0],ls[1],ls[2];
+		self.v = [self.x, self.y, self.z]
+		# logger.debug("Initiated vec3 with:\t{} \n\t\t\t\tfrom\t{}".format(ls, self.v))
+
+
+	def asNp(self):
+		return np.array(self.v)
+
+
 
 # Wrapper for state array
 class State:
-	def __init__(self, id, last_sensor):
-		self.id = id 
-		# xyz * a_body a_nav gyro v p
-		self.states = [[[0 for axis in range(3)] for variables in range(5)]] # tx5x3
-		# self.states = [[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]]
-		self.currentQ = np.quaternion(0,0,0,0)
-		self.quats = [self.currentQ]
-		self.sample_count = 0
-		self.num_cal_samples = 10
-		self.state_loc = 0
-		self.cal_samples = np.zeros((self.num_cal_samples,6), dtype=float)
-		self.offset = np.empty((3,2), dtype=float)
-		self.g_weight = 0
-		self.last_sensor = last_sensor
+
+	def __init__(self):
+		# https://science.ksc.nasa.gov/facts/acronyms.html
+		self.a_body = vec3()
+		self.a_nav = vec3()
+		self.gyro = vec3()
+		self.vel = vec3()
+		self.pos = vec3()
+		# self._state = [self.a_body, self.a_nav, self.gyro, self.vel, self.pos]
+
+	def getStateArray(self):
+		return [self.a_body, self.a_nav, self.gyro, self.vel, self.pos]
+
+	def asNp(self):
+		state = self.getStateArray()
+		return np.array( [vec.asNp() for vec in state] )
+		
+	def  as1D(self):
+		mat = []
+		state = self.getStateArray()
+		for vec in state:
+			mat.append(vec.x); mat.append(vec.y); mat.append(vec.z)
+		return mat
 
 
 # instance variables:
@@ -28,10 +56,11 @@ class Sensor:
 	""" Handles computation of sensor samples """
 
 	def __init__(self, id, last_sensor):
+		logger.info("Initiating s{}".format(id))
 		self.id = id 
 		# xyz * a_body a_nav gyro v p
-		self.states = [[[0 for axis in range(3)] for variables in range(5)]] # tx5x3
-		# self.states = [[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]]
+		self.states = [State()] # tx5x3
+			# self.states = [[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]]
 		self.currentQ = np.quaternion(0,0,0,0)
 		self.quats = [self.currentQ]
 		self.sample_count = 0
@@ -57,6 +86,7 @@ class Sensor:
 	# output: 3x2 sample
 	# [aX gX aY gY aZ gZ] --> [aX gX aY][gY aZ gZ]
 	def calibrate(self, calSample):
+
 		# print("cal_sample:\n", calSample)
 		n = self.num_cal_samples
 		sample = np.empty((3,2), dtype=float)
@@ -98,72 +128,97 @@ class Sensor:
 		#print(offset)
 		return sample
 
-	# Processes sensor data from socket and stores state information in master array
-	# input: 3x2
-	# output: appends 5x3 state to states
-	def getState(self, sample, using_a, prev_sens_pos):
-		state = np.zeros((3,5), dtype=float)
+	def stateFromGyro(self, sample):
+			# state = np.zeros((3,5), dtype=float)
+		state = State()
 
-		if(using_a):
-			a_body = np.quaternion(0,sample[0,0],sample[1,0],sample[2,0])
-			#changed angles to positive and used rotateb to get accel in nav frame 8/10/19
-			a_nav = dyn.rotateb(self.currentQ, a_body) # accel in nav frame
-			a_nav_subg = dyn.subtractg(a_nav)
+		## Gyroscope
+			# state[0,3] = sample[0,1]
+			# state[1,3] = sample[1,1]
+			# state[2,3] = sample[2,1]
+		state.gyro = vec3(sample[:,1])
 
-			# Acceleration - body
-			a_body = quaternion.as_float_array(a_body)
-			state[:,4] = a_body[1:] # position
-			# Acceleration - nav
-			a_nav_subg = quaternion.as_float_array(a_nav_subg)
-			state[0,2] = a_nav_subg[1]
-			state[1,2] = a_nav_subg[2]
-			state[2,2] = a_nav_subg[3]
-			# Gyroscope
-			state[0,3] = sample[0,1]
-			state[1,3] = sample[1,1]
-			state[2,3] = sample[2,1]
-			# Velocity
-			i = self.state_loc
-			state[0,1] = dyn.speed(self.states[i-1][1][0], self.states[i-1][2][0], dyn.w) #speed(v0 a t)
-			state[1,1] = dyn.speed(self.states[i-1][1][1], self.states[i-1][2][1], dyn.w)
-			state[2,1] = dyn.speed(self.states[i-1][1][2], self.states[i-1][2][2], dyn.w)
-			# Position
-			state[0,0] = dyn.position(self.states[i-1][0][0], self.states[i-1][1][0], self.states[i-1][2][0], dyn.w) #position(s0,v0,a,t)
-			state[1,0] = dyn.position(self.states[i-1][0][1], self.states[i-1][1][1], self.states[i-1][2][1], dyn.w)
-			state[2,0] = dyn.position(self.states[i-1][0][2], self.states[i-1][1][2], self.states[i-1][2][2], dyn.w)
-			
-		else: # not using accelerometer values
+		## Rotate old pos about prev sensor old position
+			# last_pos = self.states[self.state_loc][4]
+			# p = dyn.orbit( np.asarray(last_pos), np.asarray(prev_sens_pos), self.currentQ )
+		# print("SENSOR ID: ", self.id)
+		last_pos = (self.states[self.state_loc]).pos
+		# last_state = self.states[self.state_loc]
+		# print("last state: ", last_state.asArr())
+		# print("lsat state.pos", last_state.pos.asNp())
+		# print("last_pos: ", last_pos.v )
+		prev_sens_last_pos = (self.last_sensor.states[self.last_sensor.state_loc]).pos
+		# print("prev sens id: ", self.last_sensor.id)
+		# print("prev_sens_last_pos: ", prev_sens_last_pos.asNp() )
+		p = dyn.orbit( last_pos.asNp(), prev_sens_last_pos.asNp(), self.currentQ )
+		# print(p, end="\r", flush=True)
+		# state[:,4] = p
+		state.pos = vec3(p)
 
-			# Gyroscope
-			state[0,3] = sample[0,1]
-			state[1,3] = sample[1,1]
-			state[2,3] = sample[2,1]
+		return state
 
-			# rotate old pos about prev sensor old position
-			last_pos = self.states[self.state_loc][4]
-			p = dyn.orbit( np.asarray(last_pos), np.asarray(prev_sens_pos), self.currentQ )
-			print(p, end="\r", flush=True)
-			state[:,4] = p
-			# state[0,0] = p[0]
-			# state[0,1] = p[1]
-			# state[0,2] = p[2]
+	def stateFromAccel(self, sample):
+			# state = np.zeros((3,5), dtype=float)
+		state = State()
 
-			# Velocity
-			# i = self.state_loc
-			# state[0,1] = dyn.speed(self.states[i-1][1][0], self.states[i-1][2][0], dyn.w) #speed(v0 a t)
-			# state[1,1] = dyn.speed(self.states[i-1][1][1], self.states[i-1][2][1], dyn.w)
-			# state[2,1] = dyn.speed(self.states[i-1][1][2], self.states[i-1][2][2], dyn.w)
-			# # Position
-			# state[0,0] = dyn.position(self.states[i-1][0][0], self.states[i-1][1][0], self.states[i-1][2][0], dyn.w) #position(s0,v0,a,t)
-			# state[1,0] = dyn.position(self.states[i-1][0][1], self.states[i-1][1][1], self.states[i-1][2][1], dyn.w)
-			# state[2,0] = dyn.position(self.states[i-1][0][2], self.states[i-1][1][2], self.states[i-1][2][2], dyn.w)
+		a_body = np.quaternion(0,sample[0,0],sample[1,0],sample[2,0])
+		## Changed angles to positive and used rotateb to get accel in nav frame 8/10/19
+		a_nav = dyn.rotateb(self.currentQ, a_body) # accel in nav frame
+		a_nav_subg = dyn.subtractg(a_nav)
 
-		return state.T
+		## Acceleration - body
+		a_body = quaternion.as_float_array(a_body)
+			# state[:,4] = a_body[1:] # position
+		state.a_body = vec3(a_body[1:])
+		## Acceleration - nav
+		a_nav_subg = quaternion.as_float_array(a_nav_subg)
+			# state[0,2] = a_nav_subg[1]
+			# state[1,2] = a_nav_subg[2]
+			# state[2,2] = a_nav_subg[3]
+		state.a_nav = vec3(a_nav_subg[1:])
+		## Gyroscope
+			# state[0,3] = sample[0,1]
+			# state[1,3] = sample[1,1]
+			# state[2,3] = sample[2,1]
+		state.gyro = vec3(sample[:,1])
+
+		last_state = self.states[self.state_loc-1]
+		## TODO make speed and position functions take vec3s
+		## Velocity
+		ls = [dyn.speed(last_state.vel.x, last_state.a_nav.x, dyn.w), 
+				dyn.speed(last_state.vel.y, last_state.a_nav.y, dyn.w), 
+				dyn.speed(last_state.vel.z, last_state.a_nav.z, dyn.w)]
+		state.vel = vec3(ls)
+			# vel.x = dyn.speed(self.states[i-1][1][0], self.states[i-1][2][0], dyn.w) #speed(v0 a t)
+			# vel.y = dyn.speed(self.states[i-1][1][1], self.states[i-1][2][1], dyn.w)
+			# vel.z = dyn.speed(self.states[i-1][1][2], self.states[i-1][2][2], dyn.w)
+		# vel.x = dyn.speed(last_state.vel.x, last_state.a_nav.x, dyn.w) #speed(v0 a t)
+		# vel.y = dyn.speed(last_state.vel.y, last_state.a_nav.y, dyn.w)
+		# vel.z = dyn.speed(last_state.vel.z, last_state.a_nav.z, dyn.w)
+
+		## Position
+		
+		#position(s0,v0,a,t)
+
+		ls = [ dyn.position(last_state.pos.x, last_state.vel.x, last_state.a_nav.x, dyn.w),
+				dyn.position(last_state.pos.y, last_state.vel.y, last_state.a_nav.y, dyn.w),
+				dyn.position(last_state.pos.z, last_state.vel.z, last_state.a_nav.z, dyn.w)]
+		# pos.x = dyn.position(last_state.pos.x, last_state.vel.x, last_state.a_nav.x, dyn.w)
+		# pos.y = dyn.position(last_state.pos.y, last_state.vel.y, last_state.a_nav.y, dyn.w)
+		# pos.z = dyn.position(last_state.pos.z, last_state.vel.z, last_state.a_nav.z, dyn.w)
+		state.pos = vec3(ls);
+
+		return state
 
 	# Returns true if calibrating
 	def checkCali(self, sample):
 		# collect samples for calibration
 		if self.sample_count < self.num_cal_samples:
+
+			if(self.sample_count==0):
+				logger.info("Collecting samples for calibration:")
+			logger.info('\x1b[2K\r'+'{:.2%}'.format(self.sample_count/self.num_cal_samples))
+
 			self.cal_samples[self.sample_count, 0:3] = sample[:, 0]	# accel
 			self.cal_samples[self.sample_count, 3:6] = sample[:, 1]	# gyro
 
@@ -171,9 +226,11 @@ class Sensor:
 			return True
 			
 		elif self.sample_count == self.num_cal_samples:
-			# TODO sample returned fromm cal unused
+			# TODO sample returned from cal unused
 			sample = self.calibrate(self.cal_samples)
-			print("Calibration Samples s{}:\n".format(self.id), self.cal_samples)
+
+			logger.info("Calibration complete.")
+			logger.debug("Calibration samples: s{}:\n{}".format(self.id, self.cal_samples))
 			
 			mag_a = m.sqrt(pow(sample[0][0],2)+pow(sample[1][0],2)+pow(sample[2][0],2))
 			self.g_weight = mag_a/dyn.g
@@ -189,15 +246,10 @@ class Sensor:
 	#   sample: 3x2 np array
 	#   n: sensor id
 	# output: new 3x5 state
-	def newState(self,sample, prev_sens):
+	def getState(self,sample):
 		
 		if(self.checkCali(sample)):
 			return
-		
-			
-		# else:
-		# 	# TODO does this make sense??
-		# 	return
 			
 		# state = [None]*sensor_no
 		sample = np.subtract(sample, self.offset)
@@ -205,70 +257,53 @@ class Sensor:
 		sample[:][0] / self.g_weight
 		# print("Sample: ", sample)
 
-		prev_sens_pos = prev_sens.states[prev_sens.state_loc-1][4]
-		state = self.getState(sample, 0, prev_sens_pos);
-		#saveState
-		self.states.append(state.tolist())
+			# prev_sens_pos = prev_sens.states[prev_sens.state_loc-1][4]
+			# state = self.getState(sample, 0, prev_sens_pos);
+		
+		## Make and save state
+		if(self.id == 0):
+			state = self.stateFromAccel(sample);
+			self.currentQ = dyn.orientation(self.currentQ,sample)
+		else:
+			state = self.stateFromGyro(sample);
+			self.currentQ = dyn.makequaternion(sample)
+
+		logger.debug("s{} appending: {}".format(self.id, state.as1D()) )
+		self.states.append(state)
 		self.state_loc += 1;
 		
-		# make quat
-		self.currentQ = dyn.makequaternion(sample)
+		## Make quat
+		
 		self.quats.append(self.currentQ);
 
-		if(self.state_loc % 100 == 0):
-			self.printStates()
+		# if(self.state_loc % 100 == 0):
+		# 	self.printStates()
 
-	# for non-0 sensor
+	## For non-0 sensor
 	def gyroState(self, sample):
 
-		# abg from cali
+		## abg from cali
 		dyn.sens_to_nav(sample[0,1],sample[1,1],sample[2,1], a, b, g)
 		q = dyn.sensor_to_q(pos)
-		# rotate elbow around shoulder
+		## Rotate elbow around shoulder
 		q = orbit()
-		# subtract shoulder rotate from elbow?
-		# rotate wrist about elbow?
-
-
-	# for shoulder sens
-	def newStateS0(self,sample):
-		
-		if(self.checkCali(sample)):
-			return
-			
-		# state = [None]*sensor_no
-		sample = np.subtract(sample, self.offset)
-		
-		sample[:][0] / self.g_weight
-		# print("Sample: ", sample)
-
-		# init state array
-		state = self.getState(sample, 1, 0); # use old getState using accel
-		#saveState
-		self.states.append(state.tolist())
-		self.state_loc += 1;
-		
-		# use old quat method for s0
-		self.currentQ = dyn.orientation(self.currentQ,sample)
-		self.quats.append(self.currentQ);
-
-		if(self.state_loc % 100 == 0):
-			self.printStates()
-
+		## Subtract shoulder rotate from elbow?
+		## Rotate wrist about elbow?
 			
 	def printStates(self):
-		# convert 3d array to 2d pandas
+		## Convert 3d array to 2d pandas
 		mat = []
 		for i in range(0,len(self.states)):
-			s = [];
-			for j in range(0, len(self.states[i])):
-				s.extend(self.states[i][j]);
-			mat.append(s);
-		df = pd.DataFrame(data = mat, columns=['px','py','pz', 'vx','vy','vz', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'abx', 'aby', 'abz'])
+			# s = [];
+			# for j in range(0, len(self.states[i])):
+			# 	s.extend(self.states[i][j]);
+			mat.append(self.states[i].as1D());
+		df = pd.DataFrame(data = mat, columns=['abx', 'aby', 'abz', 'anx', 'any', 'anz',
+				'gx', 'gy', 'gz', 'vx','vy','vz', 'px','py','pz'])
 		
 		
 		#print("\n\nStates array, sensor#", self.id);
 		pd.set_option('display.max_columns', None)
-		#print(df);
+		print("\ns{} states:\n".format(self.id), df);
 
 

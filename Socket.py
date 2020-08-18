@@ -80,9 +80,11 @@ UDP_IP = "0.0.0.0"
 UDP_PORT = 8090
 sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM) # UDP
 sock.bind((UDP_IP, UDP_PORT))
+tO = .2
+sock.settimeout(tO)
 mes= bytes("ok",'utf-8')
 ######### socket setup end ##############
-
+print("Socket with {} second timeout".format(tO))
 ######### firebase setup ################
 if results.firebase_enable or results.firebase_live_enable:
 	config = {
@@ -128,13 +130,13 @@ sample = np.zeros([sensor_no,3,2],dtype = float)
 
 ################# MAIN ##################
 
-def getState(i, sample, sensors):
-	# first sensor (shoulder)
-	if(i==0):
-		sensors[i].newStateS0(sample[i])
-	else:
-		# pass previous sensor
-		sensors[i].newState(sample[i], sensors[i-1])
+# def getState(i, sample, sensors):
+# 	# first sensor (shoulder)
+# 	if(i==0):
+# 		sensors[i].newStateS0(sample[i])
+# 	else:
+# 		# pass previous sensor
+# 		sensors[i].newState(sample[i], sensors[i-1])
 
 
 while True: #!!!should be listening for user input!!!
@@ -148,6 +150,9 @@ while True: #!!!should be listening for user input!!!
 				z = [np.random.normal(9.81, sigma), np.random.normal(0, sigma)]
 				sample[i] = np.array([x,y,z])
 
+				if results.verbose_output_enable:
+					print("Simulated Sample s{} #{}: \n".format(i, timestep), sample)
+
 		elif results.testing_sample:
 			for i in range(sensor_no):
 				accel_data = [(i+1)*100+11, (i+1)*100+12, (i+1)*100+13]
@@ -157,9 +162,11 @@ while True: #!!!should be listening for user input!!!
 				z = [accel_data[2], gyro_data[2]]
 				sample[i] = [x,y,z]
 
-				sensors[i].newState(sample[i])
-			if results.verbose_output_enable:
-				print("Testing Sample: \n", sample)
+				sensors[i].getState(sample[i])
+
+				if results.verbose_output_enable and results.testing_sample and timestep==1:
+					print("Encoded Sample s{} #{}: \n".format(i, timestep), sample)
+			
 		
 		###### Unpacking sensor data #####
 		else:
@@ -177,25 +184,27 @@ while True: #!!!should be listening for user input!!!
 				y = [accel_data[1], gyro_data[1]]
 				z = [accel_data[2], gyro_data[2]]
 				sample[i] = np.array([x,y,z])
+
+			if results.verbose_output_enable:
+				if timestep%50 == 0:
+					print("Sample number %d" %timestep)
+					print("\n")			
+					for i in range(1,sensor_no+1):
+						
+						print("sensor %d" %i)
+						print(sample[i-1])
+						print("\n")
 		
 		
 		#### Unpacking sensor data end ####
-		
+		for i in range(sensor_no):
+			sensors[i].getState(sample[i])
+
 		if results.pandas_enable:
 			for i in range(sensor_no):
-				getState(i, sample, sensors)
-				if timestep % 10 == 0:
+				if timestep % 200 == 0:
 					sensors[i].printStates()
 		
-		if results.verbose_output_enable:
-			if timestep %50 == 0:
-				print("Sample number %d" %timestep)
-				print("\n")			
-				for i in range(1,sensor_no+1):
-					
-					print("sensor %d" %i)
-					print(sample[i-1])
-					print("\n")
 				
 		if results.firebase_live_enable:
 			position = sample[0]
