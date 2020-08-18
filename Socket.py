@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-#author: XnibereiK
+#author: XnibereiK, dr-baker
 
 ############# imports ###################
 import argparse
