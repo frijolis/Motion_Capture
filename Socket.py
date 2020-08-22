@@ -52,6 +52,7 @@ parser.add_argument('-S', action='store_true', default=False,
                     dest='testing_sample',
                     help='Disregarding socket. Sending encoded sample for testing purposes' )
 parser.add_argument('-r', type=int, default=100, help='data feedrate in sample/sec')
+parser.add_argument('-m', action='store_true', default=False, help='Only print position', dest='pos_print')
 results = parser.parse_args()
 
 if results.verbose_output_enable:
@@ -73,6 +74,10 @@ if results.verbose_output_enable:
 		print("Disregarding socket. Sending encoded sample as: 'nnta'")
 		print("\tnn - 2 digit sensor Number (1 innedxed)\n\tt - 1 digit sensor Type\t(1:accel, 2:gyro)\n\ta - one digit sensor Axis\t(1:x, 2:y, 3:z)")
 		time.sleep(1)	
+	if results.pos_print:
+		print("Disregarding socket. Sending encoded sample as: 'nnta'")
+		print("\tnn - 2 digit sensor Number (1 innedxed)\n\tt - 1 digit sensor Type\t(1:accel, 2:gyro)\n\ta - one digit sensor Axis\t(1:x, 2:y, 3:z)")
+		time.sleep(1)	
 ############ parser end #################
 
 ########### socket setup ################
@@ -80,7 +85,7 @@ UDP_IP = "0.0.0.0"
 UDP_PORT = 8090
 sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM) # UDP
 sock.bind((UDP_IP, UDP_PORT))
-tO = .2
+tO = 2
 sock.settimeout(tO)
 mes= bytes("ok",'utf-8')
 ######### socket setup end ##############
@@ -114,6 +119,9 @@ if results.verbose_output_enable:
 	time.sleep(1)
 	print("Starting...")
 	time.sleep(3)
+if results.pos_print:
+	print("Pandas disabled.  Only printing position.")
+	results.pandas_enable = False
 		
 # In itialize sensors
 s0 = Sensor(0, None)
@@ -138,89 +146,101 @@ sample = np.zeros([sensor_no,3,2],dtype = float)
 # 		# pass previous sensor
 # 		sensors[i].newState(sample[i], sensors[i-1])
 
+try: ## Run until KeyboardInterrupt
+	while True: 
+		if time.time()-start_time >= timestep*timestep_duration:
+			timestep += 1
 
-while True: #!!!should be listening for user input!!!
-	if time.time()-start_time >= timestep*timestep_duration:
-		timestep += 1
+			if results.simulated_socket:
+				for i in range(sensor_no):
+					x = [np.random.normal(0, sigma), np.random.normal(0.1, sigma)]
+					y = [np.random.normal(0, sigma), np.random.normal(0.1, sigma)]
+					z = [np.random.normal(9.81, sigma), np.random.normal(0, sigma)]
+					sample[i] = np.array([x,y,z])
 
-		if results.simulated_socket:
-			for i in range(sensor_no):
-				x = [np.random.normal(0, sigma), np.random.normal(0.1, sigma)]
-				y = [np.random.normal(0, sigma), np.random.normal(0.1, sigma)]
-				z = [np.random.normal(9.81, sigma), np.random.normal(0, sigma)]
-				sample[i] = np.array([x,y,z])
+					if results.verbose_output_enable:
+						print("Simulated Sample s{} #{}: \n".format(i, timestep), sample)
+
+			elif results.testing_sample:
+				for i in range(sensor_no):
+					accel_data = [(i+1)*100+11, (i+1)*100+12, (i+1)*100+13]
+					gyro_data = [(i+1)*100+21, (i+1)*100+22, (i+1)*100+23]
+					x = [accel_data[0], gyro_data[0]]
+					y = [accel_data[1], gyro_data[1]]
+					z = [accel_data[2], gyro_data[2]]
+					sample[i] = [x,y,z]
+
+					sensors[i].getState(sample[i])
+
+					if results.verbose_output_enable and results.testing_sample and timestep==1:
+						print("Encoded Sample s{} #{}: \n".format(i, timestep), sample)
+				
+			
+			###### Unpacking sensor data #####
+			else:
+				
+				try:
+					data = sock.recvfrom(1024) #buffer size is 1024 bytes
+				except socket.timeout:
+					print("Caught a timeout.")
+					continue
+
+				rec = struct.unpack('13f',data[0]) #13 float values {time+n(A_xyz+G_xyz)}
+				if results.text_file_enable:
+					file.write(str(rec)+"\n")
+				for i in range(sensor_no):
+					accel_data = rec[i*6+1:i*6+4]
+					gyro_data = rec[i*6+4:i*6+7]
+					x = [accel_data[0], gyro_data[0]]
+					y = [accel_data[1], gyro_data[1]]
+					z = [accel_data[2], gyro_data[2]]
+					sample[i] = np.array([x,y,z])
 
 				if results.verbose_output_enable:
-					print("Simulated Sample s{} #{}: \n".format(i, timestep), sample)
-
-		elif results.testing_sample:
+					if timestep%50 == 0:
+						print("Sample number %d" %timestep)
+						print("\n")			
+						for i in range(1,sensor_no+1):
+							
+							print("sensor %d" %i)
+							print(sample[i-1])
+							print("\n")
+			
+			
+			#### Unpacking sensor data end ####
 			for i in range(sensor_no):
-				accel_data = [(i+1)*100+11, (i+1)*100+12, (i+1)*100+13]
-				gyro_data = [(i+1)*100+21, (i+1)*100+22, (i+1)*100+23]
-				x = [accel_data[0], gyro_data[0]]
-				y = [accel_data[1], gyro_data[1]]
-				z = [accel_data[2], gyro_data[2]]
-				sample[i] = [x,y,z]
-
 				sensors[i].getState(sample[i])
 
-				if results.verbose_output_enable and results.testing_sample and timestep==1:
-					print("Encoded Sample s{} #{}: \n".format(i, timestep), sample)
+			if results.pandas_enable:
+				for i in range(sensor_no):
+					if timestep % 200 == 0:
+						sensors[i].printStates()
+			if results.pos_print:
+				sensors[i].printPos()
 			
-		
-		###### Unpacking sensor data #####
-		else:
-			
+					
+			if results.firebase_live_enable:
+				position = sample[0]
+				firedata = {"time":(time.time()-start_time),\
+				"sensor1":{"x":position[0,0], "y":position[1,0], "z":position[2,0]},\
+				"sensor2":{"x":position[0,1], "y":position[1,1], "z":position[2,1]}}
+				fire.liveDB(db,firedata)		
+					
+			elif results.firebase_enable:
+				position = sample[0]
+				firedata = {"timestep %d" %timestep :{"time":(time.time()-start_time),\
+				"sensor1":{"x":position[0,0], "y":position[1,0], "z":position[2,0]},\
+				"sensor2":{"x":position[0,1], "y":position[1,1], "z":position[2,1]}}}
+				fire.updateDB(db,firedata)
 
-			data = sock.recvfrom(1024) #buffer size is 1024 bytes
+except KeyboardInterrupt:
+	print('\n\nRecieved Keyboard Interrupt')
 
-			rec = struct.unpack('13f',data[0]) #13 float values {time+n(A_xyz+G_xyz)}
-			if results.text_file_enable:
-				file.write(str(rec)+"\n")
-			for i in range(sensor_no):
-				accel_data = rec[i*6+1:i*6+4]
-				gyro_data = rec[i*6+4:i*6+7]
-				x = [accel_data[0], gyro_data[0]]
-				y = [accel_data[1], gyro_data[1]]
-				z = [accel_data[2], gyro_data[2]]
-				sample[i] = np.array([x,y,z])
+	if results.text_file_enable:
+		file.close()
+		print('Closed file.')
 
-			if results.verbose_output_enable:
-				if timestep%50 == 0:
-					print("Sample number %d" %timestep)
-					print("\n")			
-					for i in range(1,sensor_no+1):
-						
-						print("sensor %d" %i)
-						print(sample[i-1])
-						print("\n")
-		
-		
-		#### Unpacking sensor data end ####
-		for i in range(sensor_no):
-			sensors[i].getState(sample[i])
+	print('Closing socket.  ', end="")
+	sock.close()
+	print('Socket closed.')
 
-		if results.pandas_enable:
-			for i in range(sensor_no):
-				if timestep % 200 == 0:
-					sensors[i].printStates()
-		
-				
-		if results.firebase_live_enable:
-			position = sample[0]
-			firedata = {"time":(time.time()-start_time),\
-			"sensor1":{"x":position[0,0], "y":position[1,0], "z":position[2,0]},\
-			"sensor2":{"x":position[0,1], "y":position[1,1], "z":position[2,1]}}
-			fire.liveDB(db,firedata)		
-				
-		elif results.firebase_enable:
-			position = sample[0]
-			firedata = {"timestep %d" %timestep :{"time":(time.time()-start_time),\
-			"sensor1":{"x":position[0,0], "y":position[1,0], "z":position[2,0]},\
-			"sensor2":{"x":position[0,1], "y":position[1,1], "z":position[2,1]}}}
-			fire.updateDB(db,firedata)
-
-if results.text_file_enable:
-	file.close()
-
-sock.close()
