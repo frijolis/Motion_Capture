@@ -5,11 +5,15 @@ import pandas as pd
 import Dynamics as dyn
 from Dynamics import vec3 as vec3
 import logging
+import os # For clearning terminal
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 # handler.setLevel(logging.DEBUG)
+
+ONLY_ACCEL = True
+ONLY_GYRO = False
 
 
 # Wrapper for state array
@@ -48,13 +52,13 @@ class Sensor:
 		logger.info("Initiating s{}".format(id))
 		self.id = id 
 		# xyz * a_body a_nav gyro v p
-		self.states = [State()] # tx5x3
+		self.states = [State()] # tx5x3 
 		self.currentQ = dyn.normalizeQ( np.quaternion(1,0,0,0) ) # Holds sensor orientation
 		self.deltaQ = dyn.normalizeQ( np.quaternion(1,0,0,0) ) # Holds last rotation
 		self.offsetQ = dyn.normalizeQ( np.quaternion(1,0,0,0) ) # Holds last rotation
 		self.quats = [self.currentQ]
 		self.sample_count = 0
-		self.num_cal_samples = 10
+		self.num_cal_samples = 100
 		self.state_loc = 0
 		self.cal_samples = np.zeros((self.num_cal_samples,6), dtype=float)
 		self.offset = np.empty((3,2), dtype=float)
@@ -73,9 +77,11 @@ class Sensor:
 		# collect samples for calibration
 		if self.sample_count < self.num_cal_samples:
 
-			if(self.sample_count==0):
-				logger.info("Collecting samples for calibration:")
-			logger.info('\x1b[2K\r'+'\t{:.2%}'.format(self.sample_count/self.num_cal_samples))
+			# if(self.sample_count==0):
+			# 	logger.info("Collecting samples for calibration:")
+			# logger.info('\x1b[2K\r'+'\t{:.2%}'.format(self.sample_count/self.num_cal_samples))
+
+			logger.info("Collecting samples for calibration s{}: \033[K{:.2%}".format(self.id, self.sample_count/self.num_cal_samples))
 
 			self.cal_samples[self.sample_count, 0:3] = sample[:, 0]	# accel
 			self.cal_samples[self.sample_count, 3:6] = sample[:, 1]	# gyro
@@ -87,7 +93,7 @@ class Sensor:
 			# TODO sample returned from cal unused
 			sample = self.calibrate(self.cal_samples)
 
-			logger.info("Calibration complete.")
+			logger.info("s{} Calibration complete.".format(self.id) )
 			logger.debug("Calibration samples: s{}:\n{}".format(self.id, self.cal_samples))
 			
 			mag_a = m.sqrt(pow(sample[0][0],2)+pow(sample[1][0],2)+pow(sample[2][0],2))
@@ -268,7 +274,9 @@ class Sensor:
 		# print("Sample: ", sample)
 
 		## Make and save state
-		if(self.id == -1): # Root sensor uses accel calculations
+		if ONLY_GYRO:
+			state = self.stateFromGyro(sample);
+		if(self.id == 0 or ONLY_ACCEL): # Root sensor uses accel calculations
 			state = self.stateFromAccel(sample);
 			self.currentQ = dyn.orientation(self.currentQ,sample)
 		else:
@@ -299,4 +307,9 @@ class Sensor:
 		pd.set_option('display.max_columns', None)
 		print("\ns{} states:\n".format(self.id), df);
 
+	def printPos(self):
+		## Clear last 3 lines
+		# print('\b'+'\x1b[2K\r'+'\b'+'\x1b[2K\r'+'\b'+'\x1b[2K\r', end='')
 
+		pos = self.states[self.state_loc].a_nav
+		print("s{}: \t{:10.2f}\t{:10.2f}\t{:10.2f}".format(self.id, pos.x, pos.y, pos.z), end="\r")

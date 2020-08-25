@@ -1,5 +1,17 @@
 import pyrebase
 
+def initFB():
+    config = {
+        "apiKey": "AIzaSyD1ajof65FRErV16r4b1A8JRqliPdJllJU", 
+            "authDomain": "cobey-2bbd1.firebaseapp.com",
+            "databaseURL": "https://cobey-2bbd1.firebaseio.com",
+            "storageBucket": "cobey-2bbd1.appspot.com"}
+    pyrebase.pyrebase.quote = fire.noquote
+    firebase = pyrebase.initialize_app(config)
+    db = firebase.database()
+    
+    fire.flushDB(db)
+
 def readDB(db):
     data = db.child("sensor_data").get()
     print(data.val())
