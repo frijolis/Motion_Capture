@@ -90,8 +90,11 @@ def makequaternion(samples):
                          m.sin(0.5*alpha(samples,dt))*m.cos(0.5*beta(samples,dt))*m.cos(0.5*gamma(samples,dt)) - m.cos(0.5*alpha(samples,dt))*m.sin(0.5*beta(samples,dt))*m.sin(0.5*gamma(samples,dt)))
 
 
-def orientation(q0,samples):
-    return q0 * makequaternion(samples)
+# def orientation(q0,samples):
+#     return q0 * makequaternion(samples)
+
+def orientation(q0,dw):
+    return q0 * deltaQ(dw)
 
 # rotate a around b but displace by c
 # a,b 3-vec position
@@ -116,8 +119,8 @@ def normalizeQ(q):
     return norm_q
 
 # input angular v (gyro measuremnts) as 3vec
-def deltaQ(ang_v):
-    norm = vec3.getL2(ang_v)
+def deltaQ(dw):
+    norm = vec3.getL2(dw)
     theta = norm * dt
 
     if( m.isclose(norm, 0, abs_tol=.00001) ):
@@ -125,9 +128,9 @@ def deltaQ(ang_v):
         return None 
 
     v = [ m.cos(theta/2), 
-        m.sin(theta/2)*ang_v.x/norm, 
-        m.sin(theta/2)*ang_v.y/norm, 
-        m.sin(theta/2)*ang_v.z/norm ]
+        m.sin(theta/2)*dw.x/norm, 
+        m.sin(theta/2)*dw.y/norm, 
+        m.sin(theta/2)*dw.z/norm ]
     deltaQ = np.quaternion( *v )
     return deltaQ
 
