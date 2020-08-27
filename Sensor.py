@@ -55,7 +55,7 @@ class Sensor:
 		self.states = [State()] # tx5x3 
 		self.currentQ = dyn.normalizeQ( np.quaternion(1,0,0,0) ) # Holds sensor orientation
 		self.deltaQ = dyn.normalizeQ( np.quaternion(1,0,0,0) ) # Holds last rotation
-		self.offsetQ = dyn.normalizeQ( np.quaternion(1,0,0,0) ) # Holds last rotation
+		self.offsetQ = dyn.normalizeQ( np.quaternion(1,0,0,0) ) # Holds initial rotation from body to nav frame
 		self.quats = [self.currentQ]
 		self.sample_count = 0
 		self.num_cal_samples = 100
