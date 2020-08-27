@@ -223,6 +223,8 @@ class Sensor:
 
 		# state = np.zeros((3,5), dtype=float)
 		state = State()
+		
+		
 
 		a_body = np.quaternion(0,sample[0,0],sample[1,0],sample[2,0])
 		## Changed angles to positive and used rotateb to get accel in nav frame 8/10/19
@@ -238,6 +240,16 @@ class Sensor:
 		state.a_nav = vec3(a_nav_subg[1:])
 		## Gyroscope
 		state.gyro = vec3(sample[:,1])
+		
+		//////////////////////////////////////////////
+		if dyn.deltaQ( state.gyro ) is None:
+			# logger.info("DeltaQ not changing")
+			self.deltaQ = self.deltaQ
+		else:
+			self.deltaQ = dyn.deltaQ( state.gyro ) 
+
+		self.currentQ = self.currentQ*self.deltaQ
+		///////////////////////////////////////////////
 
 
 		## TODO make speed and position functions take vec3s
@@ -252,6 +264,8 @@ class Sensor:
 				dyn.position(last_state.pos.y, last_state.vel.y, last_state.a_nav.y, dyn.dt),
 				dyn.position(last_state.pos.z, last_state.vel.z, last_state.a_nav.z, dyn.dt)]		
 		state.pos = vec3(ls);
+		
+		
 
 		return state
 
@@ -278,7 +292,7 @@ class Sensor:
 			state = self.stateFromGyro(sample);
 		if(self.id == 0 or ONLY_ACCEL): # Root sensor uses accel calculations
 			state = self.stateFromAccel(sample);
-			self.currentQ = dyn.orientation(self.currentQ,sample)
+			#self.currentQ = dyn.orientation(self.currentQ,sample)
 		else:
 			state = self.stateFromGyro(sample);
 
