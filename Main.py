@@ -25,9 +25,9 @@ def parseCLA():
 		
 		#sample from n-th sensor
 		sample[n],n =
-		[[An_X, Gn_X],
-		 [An_Y, Gn_X],
-		 [An_Z, Gn_X]]
+		[[An_X, Gn_X, Mn_X],
+		 [An_Y, Gn_Y, Mn_Y],
+		 [An_Z, Gn_Z, Mn_Z]]
 	'''))
 	                                 
 	parser.add_argument('-t', action='store_true', default=False,
@@ -118,7 +118,7 @@ if results.verbose_output_enable:
 try: ## Run until KeyboardInterrupt
 	while True: 
 
-		sample = np.zeros([sensor_no,3,2],dtype = float)
+		sample = np.zeros([sensor_no,3,3],dtype = float)
 
 
 		if time.time()-start_time >= timestep*timestep_duration:
