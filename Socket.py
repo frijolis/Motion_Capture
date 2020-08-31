@@ -60,9 +60,10 @@ def getTestSample(sample):
 	for i in range(sensor_no):
 		accel_data = [(i+1)*100+11, (i+1)*100+12, (i+1)*100+13]
 		gyro_data = [(i+1)*100+21, (i+1)*100+22, (i+1)*100+23]
-		x = [accel_data[0], gyro_data[0]]
-		y = [accel_data[1], gyro_data[1]]
-		z = [accel_data[2], gyro_data[2]]
+		mag_data = [(i+1)*100+31, (i+1)*100+32, (i+1)*100+33]
+		x = [accel_data[0], gyro_data[0], mag_data[0]]
+		y = [accel_data[1], gyro_data[1], mag_data[1]]
+		z = [accel_data[2], gyro_data[2], mag_data[2]]
 		sample[i] = [x,y,z]
 
 def getSample(sample, sock):
@@ -72,14 +73,15 @@ def getSample(sample, sock):
 	except socket.timeout:
 		print("Caught a timeout.")
 		return None
-	rec = struct.unpack('13f',data[0]) #13 float values {time+n(A_xyz+G_xyz)}
+	rec = struct.unpack('19f',data[0]) #19 float values {time+n(A_xyz+G_xyz+M_xyz)}
 
 	for i in range(sensor_no):
-		accel_data = rec[i*6+1:i*6+4]
-		gyro_data = rec[i*6+4:i*6+7]
-		x = [accel_data[0], gyro_data[0]]
-		y = [accel_data[1], gyro_data[1]]
-		z = [accel_data[2], gyro_data[2]]
+		accel_data = rec[i*9+1:i*9+4]
+		gyro_data = rec[i*9+4:i*9+7]
+		mag_data = rec[i*9+7:i*9+10
+		x = [accel_data[0], gyro_data[0], mag_data[0]]
+		y = [accel_data[1], gyro_data[1], mag_data[1]]
+		z = [accel_data[2], gyro_data[2], mag_data[2]]
 		sample[i] = np.array([x,y,z])
 	return rec
 
