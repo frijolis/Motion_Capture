@@ -35,7 +35,7 @@ def initSocket(ip, port):
 
 def initFile():
 	file = open("readings.txt", "w")
-	file.write("time A1_xyz G1_xyz A2_xyz G2_xyz\n")
+	file.write("time A1_xyz G1_xyz M1_xyx A2_xyz G2_xyz M2_xyz\n")
 	return file
 
 def initSensors():		
