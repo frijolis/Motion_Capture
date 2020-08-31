@@ -56,6 +56,7 @@ def rotatef(q, v):
 def rotateb(q, v):
     return q_mult(q_mult(conjugate(q), v), q)
 
+#TODO: write alpha0 and check that euler angle representation of navigation frame is correct
 def alpha0(samples):
     return 0
 
