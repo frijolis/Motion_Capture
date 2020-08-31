@@ -8,7 +8,7 @@ to the host. Given that the connection is established properly, the Socket.py py
 Max Frequency (adjustable through parser eg. Socket.py -r 40): 100Hz (10ms)
 Accel Setting: 2[g] (default) at 952 [Hz]  Gyroscope Setting 245 [rad/s] (default) at 952 [Hz]
 Port: 8090   Buffer Size: 1024   Data Type: float
-Format: Time, gx1, gy1, gz1, gx2, gy2, gz2, ax1, ay1, az1, ax2, ay2, az2;
+Format: Time, gx1, gy1, gz1, gx2, gy2, gz2, ax1, ay1, az1, ax2, ay2, az2, mx1, my1, mz1, mx2, my2, mz2;
 
 Functionality:
 usage: Socket.py [-h] [-t] [-f] [-l] [-p] [-v] [-s] [-S] [-r R]
@@ -19,9 +19,9 @@ Samples sent to the Dynamics.py program are of the following format:
 
 	#sample from n-th sensor
 	sample[n],n =
-	[[An_X, Gn_X],
-	 [An_Y, Gn_X],
-	 [An_Z, Gn_X]]
+	[[An_X, Gn_X, Mn_x],
+	 [An_Y, Gn_X, Mn_Y],
+	 [An_Z, Gn_X, Mn_Z]]
 
 optional arguments:
   -h, --help  show this help message and exit
