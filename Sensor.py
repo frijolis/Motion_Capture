@@ -85,6 +85,7 @@ class Sensor:
 
 			self.cal_samples[self.sample_count, 0:3] = sample[:, 0]	# accel
 			self.cal_samples[self.sample_count, 3:6] = sample[:, 1]	# gyro
+			self.cal_samples[self.sample_count, 6:9] = sample[:, 2]	# mag
 
 			self.sample_count += 1
 			return True
@@ -105,25 +106,28 @@ class Sensor:
 
 	"""
 	# averages t cal_samples and returns single sample, sets offest instance var
-	# input: nxtx6 array
-	#   0   [ [aX gX aY gY aZ gZ]
+	# input: nxtx9 array
+	#   0   [ [aX aY aZ gX gY gZ mY mX mZ]
 	#       ...
-	#   t   [aX gX aY gY aZ gZ] ]
+	#   t   [aX aY aZ gX gY gZ mY mX mZ] ]
 	#   per no_sensors
-	# output: 3x2 sample
-	# [aX gX aY gY aZ gZ] --> [aX gX aY][gY aZ gZ]
+	# output: 3x3 sample
+	# [aX aY aZ gX gY gZ mY mX mZ] --> [[aX aY aZ][gX gY gZ][mX mY mZ]]
 	"""
 	def calibrate(self, calSample):
 
 		# print("cal_sample:\n", calSample)
 		n = self.num_cal_samples
-		sample = np.empty((3,2), dtype=float)
+		sample = np.empty((3,3), dtype=float)
 		sample[0][0] = sum(calSample[:,0])/n
 		sample[1][0] = sum(calSample[:,1])/n
 		sample[2][0] = sum(calSample[:,2])/n
 		sample[0][1] = sum(calSample[:,3])/n
 		sample[1][1] = sum(calSample[:,4])/n
 		sample[2][1] = sum(calSample[:,5])/n
+		sample[0][2] = sum(calSample[:,6])/n
+		sample[1][2] = sum(calSample[:,7])/n
+		sample[2][2] = sum(calSample[:,8])/n
 		#print(sample)
 
 		## Quaternions
